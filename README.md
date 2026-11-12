@@ -36,7 +36,9 @@ Schlaf-Tagebuch für Babys und Kleinkinder – als Web-App (PWA) für iPhone und
 - Content-Security-Policy, keine externen Skripte oder Schriften
 
 ## Betrieb
-- Supabase-Projekt „Schlummi“ (Frankfurt). Im Dashboard: *Authentication → URL Configuration → Site URL* = GitHub-Pages-Adresse; *E-Mail-Bestätigung an lassen*; optional *Leaked password protection* aktivieren.
+- Live: https://nicolasklotz89-ux.github.io/schlummi/
+- Supabase-Projekt „Schlummi“ (Frankfurt). Site URL ist auf die Pages-Adresse gesetzt, Mindestpasswortlänge 8, E-Mail-Bestätigung an. („Leaked password protection“ gibt es erst im Pro-Tarif.)
 - Kostenloser Supabase-Tarif pausiert Projekte nach 7 Tagen ohne Nutzung – bei täglicher Nutzung kein Thema.
 - Veröffentlichen: GitHub-Repo → *Settings → Pages → main / root*. Auf dem Handy öffnen → „Zum Home-Bildschirm“.
-- Vor Weitergabe an andere Familien: Platzhalter in Datenschutz/Impressum ersetzen, Auftragsverarbeitungsvertrag (DPA) im Supabase-Dashboard abschließen.
+- Der Auftragsverarbeitungsvertrag (DPA) von Supabase ist Teil der Nutzungsbedingungen – keine separate Unterschrift nötig.
+- Vor Weitergabe an andere Familien: Platzhalter in Datenschutz/Impressum ersetzen.
