@@ -25,7 +25,7 @@ Schlaf-Tagebuch für Babys und Kleinkinder – als Web-App (PWA) für iPhone und
 | `config.js` | Supabase-URL, Publishable Key, VAPID-Public-Key (dürfen öffentlich sein) |
 | `sw.js` | Offline-Cache und Push |
 | `vendor/`, `fonts/` | Supabase-Bibliothek 2.119.0 und Schrift lokal (keine Drittanbieter) |
-| `datenschutz.html`, `impressum.html` | Rechtstexte – **Platzhalter ersetzen!** |
+| `datenschutz.html`, `impressum.html` | Rechtstexte |
 | `supabase/` | `schema.sql` → `push.sql` → `03_haertung.sql`, Edge Function `functions/push/` |
 | `tests/` | Tests der Planungslogik: `npm test` |
 
@@ -41,4 +41,4 @@ Schlaf-Tagebuch für Babys und Kleinkinder – als Web-App (PWA) für iPhone und
 - Kostenloser Supabase-Tarif pausiert Projekte nach 7 Tagen ohne Nutzung – bei täglicher Nutzung kein Thema.
 - Veröffentlichen: GitHub-Repo → *Settings → Pages → main / root*. Auf dem Handy öffnen → „Zum Home-Bildschirm“.
 - Der Auftragsverarbeitungsvertrag (DPA) von Supabase ist Teil der Nutzungsbedingungen – keine separate Unterschrift nötig.
-- Vor Weitergabe an andere Familien: Platzhalter in Datenschutz/Impressum ersetzen.
+- Datenschutz und Impressum sind ausgefüllt; vor Weitergabe an andere Familien rechtlich prüfen lassen.
