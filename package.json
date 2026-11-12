@@ -1,0 +1,11 @@
+{
+  "name": "schlummi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Schlaf-Tagebuch für Babys und Kleinkinder (PWA)",
+  "type": "module",
+  "scripts": {
+    "test": "TZ=Europe/Berlin node --test tests/plan.test.mjs && TZ=UTC node --test tests/plan.test.mjs",
+    "start": "python3 -m http.server 8000"
+  }
+}

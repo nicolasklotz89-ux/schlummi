@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="114" fill="#2F3A73"/>
+  <g transform="translate(76 76) scale(3.6)">
+    <mask id="mm"><rect width="100" height="100" fill="#fff"/><circle cx="62" cy="40" r="27" fill="#000"/></mask>
+    <circle cx="46" cy="55" r="30" fill="#F3DDA8" mask="url(#mm)"/>
+    <path d="M75 15 Q76.6 22.4 84 24 Q76.6 25.6 75 33 Q73.4 25.6 66 24 Q73.4 22.4 75 15Z" fill="#F3DDA8"/>
+    <path d="M86 43 Q86.9 47.1 91 48 Q86.9 48.9 86 53 Q85.1 48.9 81 48 Q85.1 47.1 86 43Z" fill="#F3DDA8"/>
+  </g>
+</svg>
