@@ -1,5 +1,5 @@
 // Service Worker: Network-first mit Zeitlimit, offline aus dem Cache; Push-Benachrichtigungen.
-const CACHE = 'schlummi-v4';
+const CACHE = 'schlummi-v5';
 const SHELL = [
   './', 'index.html', 'style.css', 'theme.js', 'app.js', 'store.js', 'sleepdata.js', 'config.js',
   'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png',

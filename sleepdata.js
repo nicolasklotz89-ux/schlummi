@@ -178,6 +178,73 @@ export function personalNapLen(family, sleeps, now, tz, fallback) {
   return { napLen: Math.round(clamp(med, 20, 180)), personal: true };
 }
 
+
+// Gewichteter Median (neuere Tage zählen mehr)
+function wmedian(pairs) {
+  const a = pairs.filter(p => isFinite(p[0])).sort((x, y) => x[0] - y[0]);
+  const total = a.reduce((t, p) => t + p[1], 0);
+  let acc = 0;
+  for (const [v, w] of a) { acc += w; if (acc >= total / 2) return v; }
+  return a.length ? a[a.length - 1][0] : NaN;
+}
+const toClock = h => { h = ((h % 24) + 24) % 24; const m = Math.round(h * 60); return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+
+/**
+ * Persönliches Muster aus den letzten 14 Tagen (ab 5 vollständigen Tagen).
+ * firstWW: Wachzeit vom Aufwachen bis zum 1. Schläfchen, lastWW: letztes Schläfchen bis Nachtschlaf,
+ * napLen, naps (typische Anzahl der letzten 7 Tage), bed/wake (typische Uhrzeiten), trend ('fewer'|'more'|null).
+ */
+export function learnPattern(family, sleeps, now = new Date(), tz) {
+  const isN = s => isNightSleep(s, now, tz, family) && s.end_at && durMin(s, now) >= 240;
+  const ended = sleeps.filter(s => s.end_at).sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at));
+  const nights = ended.filter(isN);
+  const since = now.getTime() - 14 * DAY;
+  const days = [];
+  for (const n of nights) {
+    const wake = new Date(n.end_at);
+    if (wake.getTime() < since || wake > now) continue;
+    const next = nights.find(m => Date.parse(m.start_at) > wake.getTime() && Date.parse(m.start_at) < wake.getTime() + 18 * 3600e3);
+    const limit = next ? Date.parse(next.start_at) : wake.getTime() + 16 * 3600e3;
+    const naps = ended.filter(s => !isNightSleep(s, now, tz, family) && Date.parse(s.start_at) > wake.getTime() && Date.parse(s.start_at) < limit);
+    const age = (now - wake) / DAY;
+    const w = Math.pow(0.85, age);
+    const bedH = next ? localHour(new Date(next.start_at), tz) : NaN;
+    days.push({
+      w, age, complete: !!next,
+      wakeH: localHour(wake, tz),
+      bedH: bedH < 12 ? bedH + 24 : bedH,
+      firstWW: naps.length ? (Date.parse(naps[0].start_at) - wake) / MIN : NaN,
+      lastWW: naps.length && next ? (Date.parse(next.start_at) - Date.parse(naps[naps.length - 1].end_at)) / MIN : NaN,
+      napCount: naps.length,
+      napLens: naps.map(x => durMin(x, now)),
+    });
+  }
+  const complete = days.filter(d => d.complete);
+  if (complete.length < 5) return null;
+  const recent = complete.filter(d => d.age <= 7), older = complete.filter(d => d.age > 7);
+  const mean = a => a.reduce((t, d) => t + d.napCount, 0) / a.length;
+  const napsRecent = recent.length ? mean(recent) : mean(complete);
+  let trend = null;
+  if (recent.length >= 3 && older.length >= 3) {
+    const diff = napsRecent - mean(older);
+    trend = diff <= -0.4 ? 'fewer' : diff >= 0.4 ? 'more' : null;
+  }
+  const napLens = days.flatMap(d => d.napLens.map(l => [l, d.w])).filter(p => p[0] >= 10 && p[0] <= 240);
+  const firstWW = wmedian(days.map(d => [d.firstWW, d.w]));
+  const lastWW = wmedian(complete.map(d => [d.lastWW, d.w]));
+  return {
+    days: complete.length,
+    firstWW: isFinite(firstWW) ? Math.round(firstWW) : null,
+    lastWW: isFinite(lastWW) ? Math.round(lastWW) : null,
+    napLen: napLens.length >= 3 ? Math.round(clamp(wmedian(napLens), 20, 180)) : null,
+    naps: Math.round(napsRecent),
+    napsAvg: napsRecent,
+    trend,
+    bed: toClock(wmedian(complete.map(d => [d.bedH, d.w]))),
+    wake: toClock(wmedian(days.map(d => [d.wakeH, d.w]))),
+  };
+}
+
 export function rhythm(family, now = new Date(), sleeps = [], tz) {
   const age = effectiveAge(family, now);
   const months = age.months;
@@ -185,15 +252,17 @@ export function rhythm(family, now = new Date(), sleeps = [], tz) {
   const napRow = napsFor(months);
   const ww = family.wake_window ? Number(family.wake_window) : null;
   const nl = personalNapLen(family, sleeps, now, tz, napRow.napLen);
+  const learned = months >= NEWBORN_MONTHS && sleeps.length ? learnPattern(family, sleeps, now, tz) : null;
   return {
-    months, age, napRow,
+    months, age, napRow, learned,
     ageWindow: ageW,
     window: ww ? { min: ww - 20, max: ww + 20, custom: true } : { ...ageW, custom: false },
-    naps: family.naps_per_day ?? napRow.naps,
+    naps: family.naps_per_day ?? (learned ? learned.naps : napRow.naps),
     napsCustom: family.naps_per_day != null,
-    napLen: nl.napLen, napLenPersonal: nl.personal,
-    bedtime: clock(family.bedtime),
-    waketime: clock(family.waketime),
+    napLen: learned?.napLen ?? nl.napLen, napLenPersonal: !!learned?.napLen || nl.personal,
+    bedtime: clock(family.bedtime) ?? learned?.bed ?? null,
+    bedtimeLearned: !family.bedtime && !!learned,
+    waketime: clock(family.waketime) ?? learned?.wake ?? null,
     newborn: months < NEWBORN_MONTHS,
   };
 }
@@ -263,6 +332,11 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     const untilBed = (B - lastEnd) / MIN;
     let win = remNaps ? (untilBed - remNaps * r.napLen) / (remNaps + 1) : untilBed;
     win = clamp(win, w.min * 0.85, w.max * 1.15);
+    // Erstes Schläfchen nach eurem persönlichen Muster (wenn keine feste Wachzeit eingestellt ist)
+    if (r.learned?.firstWW && !w.custom && napsDone === 0 && remNaps) {
+      win = Math.min(r.learned.firstWW, untilBed - remNaps * r.napLen - 60);
+      win = Math.max(win, w.min * 0.6);
+    }
     const napAt = new Date(lastEnd.getTime() + win * MIN);
     if (remNaps && napAt.getTime() + 45 * MIN < B.getTime()) {
       next = { type: 'nap', target: napAt };

@@ -143,3 +143,28 @@ test('Statistik: Nacht/Tag und nächtliches Aufwachen', () => {
   assert.equal(s.naps, 1);
   assert.equal(nightWakings(sleeps, L('2026-11-12T06:30'), now, TZ, baby7), 2);
 });
+
+test('Persönliches Muster wird aus 14 Tagen gelernt', async () => {
+  const { learnPattern } = await import('../sleepdata.js');
+  const fam = { birthdate: '2025-08-14' };
+  const sleeps = [];
+  for (let d = 1; d <= 10; d++) {
+    const day = new Date(Date.UTC(2026, 10, 12 - d));
+    const iso = day.toISOString().slice(0, 10);
+    const prev = new Date(day.getTime() - 864e5).toISOString().slice(0, 10);
+    sleeps.push(sl(`${prev}T20:10`, `${iso}T07:00`));
+    sleeps.push(sl(`${iso}T12:15`, `${iso}T13:35`));
+  }
+  sleeps.push(sl('2026-11-11T20:10', '2026-11-12T07:00'));
+  const p = learnPattern(fam, sleeps, L('2026-11-12T08:00'), TZ);
+  assert.ok(p, 'Muster erkannt');
+  assert.equal(p.naps, 1);
+  assert.equal(p.firstWW, 315);
+  assert.equal(p.napLen, 80);
+  assert.equal(p.bed, '20:10');
+  assert.equal(p.wake, '07:00');
+  const plan = planDay(fam, sleeps, L('2026-11-12T08:00'), TZ);
+  assert.equal(plan.kind, 'nap');
+  assert.equal(hm(plan.next.target), '12:15');
+  assert.equal(hm(plan.upcoming.at(-1).at), '20:10');
+});
