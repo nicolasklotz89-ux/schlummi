@@ -333,3 +333,6 @@ dialog .toast { bottom: 24px; }
 .field.fcol .ctl { display: flex; gap: 8px; align-items: center; }
 .field.fcol .ctl input { max-width: 150px; }
 .facts .fnote { margin-top: 4px; font-size: var(--fs-xs, 12px); opacity: .8; }
+/* Kein Zoomen: Doppeltipp-Zoom aus, Eingabefelder mind. 16px (sonst zoomt iOS beim Antippen) */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+input, select, textarea { font-size: max(16px, 1em); }

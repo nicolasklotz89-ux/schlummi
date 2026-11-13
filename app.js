@@ -1215,6 +1215,10 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && st
 window.addEventListener('online', () => { if (state.family) run(refresh); });
 window.addEventListener('offline', () => { if (state.family) render(); });
 
+/* ===================== Kein Zoomen (iOS ignoriert user-scalable) ===================== */
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
 /* ===================== Start ===================== */
 async function afterInit(res) {
   if (res.needsAuth) return viewAuth();
