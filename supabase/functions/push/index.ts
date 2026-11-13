@@ -121,9 +121,11 @@ async function onTick() {
             { onConflict: "subscription_id,sleep_id,kind", ignoreDuplicates: true })
           .select();
         if (!ins?.length) continue; // schon erinnert
+        const target = new Date(Math.min(Math.max(Math.round(n.target.getTime() / 3e5) * 3e5, n.from.getTime()), n.to.getTime()));
+        const when = `voraussichtlich ${fmt(target, sub.tz)} (${fmt(n.from, sub.tz)} – ${fmt(n.to, sub.tz)})`;
         const payload = n.type === "bedtime"
-          ? { title: `Bald Schlafenszeit für ${family.child_name}`, body: `Etwa ${fmt(n.from, sub.tz)} – ${fmt(n.to, sub.tz)} · achte auf Müdigkeitszeichen`, tag: "remind" }
-          : { title: `Bald Zeit für ein Schläfchen?`, body: `${family.child_name} ist seit ${fmt(plan.lastEnd, sub.tz)} wach · etwa ${fmt(n.from, sub.tz)} – ${fmt(n.to, sub.tz)}`, tag: "remind" };
+          ? { title: `Bald Schlafenszeit für ${family.child_name}`, body: `${when[0].toUpperCase()}${when.slice(1)} · achte auf Müdigkeitszeichen`, tag: "remind" }
+          : { title: `Bald Zeit für ein Schläfchen?`, body: `${family.child_name} ist seit ${fmt(plan.lastEnd, sub.tz)} wach · ${when}`, tag: "remind" };
         if (await send(sub, payload)) sent++;
         else await db.from("push_log").delete().match({ subscription_id: sub.id, sleep_id: plan.last.id, kind: "remind" }); // nächster Versuch
       } catch (e) {
