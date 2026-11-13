@@ -348,3 +348,6 @@ input, select, textarea { font-size: max(16px, 1em); }
 .quote { text-align: center; margin: 6px 12px 0; font-size: 15px; line-height: 1.45; color: var(--text-2); font-style: italic; text-wrap: balance; }
 .quote span { color: var(--star); font-style: normal; margin-right: 2px; }
 .sleepview.nowv { padding-top: 8px; }
+figure.quote { margin: 6px 16px 0; text-align: center; }
+figure.quote blockquote { margin: 0; font-size: 15px; line-height: 1.45; color: var(--text); font-style: italic; text-wrap: balance; }
+figure.quote figcaption { margin-top: 4px; font-size: 12px; color: var(--text-2); font-style: normal; }

@@ -251,74 +251,65 @@ const subHead = (title, back) => `<div class="sub-head"><a class="back" href="#$
 
 
 /* ===================== Spruch des Tages (eigene Texte) ===================== */
-const QUOTES = [
-  'Die Nächte sind kurz, aber das Lächeln am Morgen macht alles wett.',
-  'Du musst nicht perfekt sein. {name} braucht nur dich.',
-  'Kleine Hände, großes Herz – heute wird ein guter Tag.',
-  'Jeder Tag mit {name} ist ein erstes Mal. Genieß es.',
-  'Müde Augen, volles Herz. So fühlt sich Liebe an.',
-  'Es gibt keinen schöneren Wecker als ein glucksendes Kinderlachen.',
-  'Heute zählt nicht, was geschafft ist – sondern wie viel gekuschelt wurde.',
-  'Die Wäsche wartet. Die Babyzeit nicht.',
-  'Auch an chaotischen Tagen: Du machst das richtig gut.',
-  '{name} sucht nicht die perfekten Eltern, sondern die eigenen.',
-  'Tief durchatmen. Auch diese Phase geht vorbei – und du wirst sie vermissen.',
-  'Ein Baby macht das Haus unordentlicher und das Leben reicher.',
-  'Die schönste Aussicht? Ein schlafendes Kind.',
-  'Heute ist ein guter Tag, um {name} zum Lachen zu bringen.',
-  'Stark ist, wer nachts aufsteht und morgens trotzdem lächelt.',
-  'Kinder erinnern sich nicht an saubere Böden, sondern an Zeit mit dir.',
-  'Klein angefangen, ganz groß geliebt.',
-  'Wenn {name} schläft, darfst du auch einfach mal nichts tun.',
-  'Geduld ist, wenn man zum zehnten Mal „Nochmal!“ hört – und mitlacht.',
-  'Ihr seid ein Team. Auch um drei Uhr nachts.',
-  'Babyspeck, Babyduft, Babylachen – das Beste gibt es nur jetzt.',
-  'Heute nicht alles schaffen ist völlig okay. Da sein reicht.',
-  'Jeder Entwicklungsschritt ist ein kleines Wunder – auch der Schritt in die Pfütze.',
-  'Für die Welt bist du jemand. Für {name} bist du die Welt.',
-  'Schlaflos, aber glücklich – das neue Normal.',
-  'Ein Kinderlächeln ist der beste Kaffee.',
-  'Die Tage sind lang, die Jahre sind kurz.',
-  'Weinen ist Sprache. Du hörst zu – und das ist genug.',
-  'Mit {name} wird aus jedem Spaziergang eine Entdeckungsreise.',
-  'Deine Ruhe ist ansteckend. Ein Atemzug nach dem anderen.',
-  'Es gibt kein Handbuch. Aber es gibt dein Bauchgefühl.',
-  'Heute gibt es wieder mindestens einen Moment zum Einrahmen.',
-  'Kuscheln ist keine verlorene Zeit. Es ist die wichtigste.',
-  'Ein kleiner Mensch hat dich heute schon zum Lächeln gebracht – oder gleich.',
-  'Krümel überall? Dann wurde hier gelebt.',
-  'Du wächst mit deinem Kind. Jeden einzelnen Tag.',
-  'Manche Tage sind zum Überstehen. Morgen wird wieder gestaunt.',
-  'Babys brauchen keine Pläne. Sie brauchen Arme.',
-  '{name} weiß noch nicht viele Wörter – aber ganz genau, wer du bist.',
-  'Augenringe sind die Orden der Elternzeit.',
-  'Das größte Abenteuer passt in einen Schlafsack.',
-  'Nicht vergessen: Auch du verdienst heute eine Pause.',
-  'Glück ist klebrig, laut und riecht nach Babycreme.',
-  'Jede Nacht endet. Jeder Morgen mit {name} beginnt neu.',
-  'Ein ruhiger Moment mit {name} ist mehr wert als jede To-do-Liste.',
-  'Lachen, trösten, wiederholen. Du bist großartig darin.',
-  'Was heute anstrengend ist, ist morgen eine schöne Geschichte.',
-  'Kleine Füße, große Spuren – direkt in deinem Herzen.',
-  'Du hast heute schon viel gegeben. Sei stolz darauf.',
-  'Die beste Entscheidung des Tages: noch fünf Minuten kuscheln.',
-  'Neugier, Staunen, Lachen – {name} zeigt dir die Welt neu.',
-  'Elternsein ist anstrengend. Und das Schönste, was es gibt.',
-  'Auch kleine Fortschritte sind Fortschritte. Bei {name} und bei dir.',
-  'Wer ein Baby in den Schlaf wiegt, wiegt auch ein Stück Zukunft.',
-  'Heute ist ein Tag für Seifenblasen, Quatsch und ganz viel Nähe.',
-  'Ein Kind zu begleiten ist kein Sprint. Lauf in deinem Tempo.',
-  'Wenn alles zu viel wird: einmal an {name}s Kopf schnuppern.',
-  'Ein Tag mit Baby hat 24 Stunden Liebe – und ein paar Minuten Schlaf.',
-  'Es ist okay, Hilfe anzunehmen. Ein ganzes Dorf ist nicht zu viel.',
-  'Das Lächeln von {name} ist heute dein persönliches Highlight.',
+// Echte Zitate (Wortlaut und Quelle geprüft; Übersetzungen aus dem Englischen eigene)
+const REAL_QUOTES = [
+  ['Kinder werden nicht erst zu Menschen – sie sind bereits welche.', 'Janusz Korczak, Das Recht des Kindes auf Achtung'],
+  ['Nur wer erwachsen wird und ein Kind bleibt, ist ein Mensch.', 'Erich Kästner'],
+  ['Jedes Kind kommt mit der Botschaft, dass Gott den Menschen noch nicht aufgegeben hat.', 'Rabindranath Tagore, Stray Birds'],
+  ['Eure Kinder sind nicht eure Kinder. Sie sind die Söhne und Töchter der Sehnsucht des Lebens nach sich selbst.', 'Khalil Gibran, Der Prophet'],
+  ['Alle großen Leute sind einmal Kinder gewesen. Aber wenige erinnern sich daran.', 'Antoine de Saint-Exupéry, Der kleine Prinz'],
+  ['Sich für ein Kind zu entscheiden heißt, für immer zu wissen, dass das eigene Herz außerhalb des Körpers herumläuft.', 'Elizabeth Stone'],
+  ['Die Tage sind lang, aber die Jahre sind kurz.', 'Gretchen Rubin'],
+  ['Und dann muss man ja auch noch Zeit haben, einfach dazusitzen und vor sich hin zu schauen.', 'Astrid Lindgren'],
+  ['Man sieht nur mit dem Herzen gut. Das Wesentliche ist für die Augen unsichtbar.', 'Antoine de Saint-Exupéry, Der kleine Prinz'],
+  ['Das Gras wächst nicht schneller, wenn man daran zieht.', 'Afrikanisches Sprichwort'],
+  ['Ihr könnt ihnen eure Liebe geben, aber nicht eure Gedanken, denn sie haben ihre eigenen Gedanken.', 'Khalil Gibran, Der Prophet'],
+  ['Ein Kind ist keine Knetmasse, die beliebig geformt werden kann.', 'Remo H. Largo'],
+  ['Die Zeit, die du für deine Rose verloren hast, sie macht deine Rose so wichtig.', 'Antoine de Saint-Exupéry, Der kleine Prinz'],
+  ['Hilf mir, es selbst zu tun.', 'Leitsatz der Montessori-Pädagogik'],
+  ['Die meisten Menschen legen ihre Kindheit ab wie einen alten Hut.', 'Erich Kästner'],
+  ['Ihr seid die Bogen, von denen eure Kinder als lebende Pfeile ausgeschickt werden.', 'Khalil Gibran, Der Prophet'],
+  ['Um ein Kind großzuziehen, braucht es ein ganzes Dorf.', 'Afrikanisches Sprichwort'],
+  ['Jedes Kind ist ein Unikat.', 'Remo H. Largo'],
+  ['Die großen Leute verstehen nie etwas von selbst, und für die Kinder ist es zu anstrengend, ihnen immer und immer wieder erklären zu müssen.', 'Antoine de Saint-Exupéry, Der kleine Prinz'],
+  ['Ohne Mitwirkung von Experten bewältigen wir das Ganze nicht – und Experte ist das Kind.', 'Janusz Korczak, Das Recht des Kindes auf Achtung'],
 ];
+// Eigene Gedanken (ohne Autor)
+const OWN_THOUGHTS = [
+  'Irgendwann trägst du {name} zum letzten Mal auf dem Arm – ohne zu wissen, dass es das letzte Mal war.',
+  'Kinder brauchen keine perfekten Tage. Sie brauchen Erwachsene, die nach einem schweren Tag wieder auf sie zugehen.',
+  'Nähe verwöhnt nicht. Sie macht stark genug, um sich später zu lösen.',
+  'Du kannst {name} nicht vor jedem Kummer bewahren. Aber du kannst dafür sorgen, dass {name} nie allein damit ist.',
+  'Was sich heute wie Stillstand anfühlt, ist oft Wachstum, das man noch nicht sieht.',
+  'Die wichtigsten Dinge, die {name} gerade lernt, stehen in keinem Entwicklungskalender.',
+  'Wer ein Kind tröstet, tröstet manchmal auch das Kind, das er selbst einmal war.',
+  'Nicht jede Nacht muss gut werden. Es reicht, dass am Morgen jemand da ist.',
+  'Ein Kind fragt nicht, ob du alles richtig machst. Es fragt, ob du da bist.',
+  'Was heute selbstverständlich ist – das Gewicht im Arm, der Atem an deinem Hals –, wirst du eines Tages vermissen.',
+  'Geduld ist keine Eigenschaft, die man hat. Sie ist eine Entscheidung, die man immer wieder neu trifft.',
+  'Was {name} heute zum ersten Mal entdeckt, darfst du durch diese Augen noch einmal neu sehen.',
+  'In zwanzig Jahren erinnert sich niemand an die Uhrzeit des Mittagsschlafs. Aber an das Gefühl, gehalten worden zu sein.',
+  'Jeder Wutanfall stellt uns eine stille Frage: Was brauchst du gerade wirklich?',
+  'Kinder sind keine Projekte. Sie sind Menschen, die ein Stück des Weges mit uns gehen.',
+  'Die Welt wird nicht durch große Reden besser, sondern durch Kinder, die sich geliebt fühlen.',
+  'Vergleiche rauben Freude. {name} geht den eigenen Weg im eigenen Tempo.',
+  'Erziehung beginnt nicht mit Regeln, sondern mit Beziehung.',
+  'Weinen ist keine Störung. Es ist die einzige Sprache, die {name} schon fließend spricht.',
+  'Wer staunt, lernt. Und niemand staunt so gründlich wie ein Kind.',
+];
+// abwechselnd: echtes Zitat, eigener Gedanke
+const QUOTES = REAL_QUOTES.flatMap((q, i) => [{ t: q[0], a: q[1] }, ...(OWN_THOUGHTS[i] ? [{ t: OWN_THOUGHTS[i] }] : [])]);
 function quoteOfDay(now = new Date()) {
   const n = Math.floor((startOfDay(now).getTime() - now.getTimezoneOffset() * MIN) / DAY);
-  const q = QUOTES[((n % QUOTES.length) + QUOTES.length) % QUOTES.length];
-  return esc(q).replaceAll('{name}', name());
+  return QUOTES[((n % QUOTES.length) + QUOTES.length) % QUOTES.length];
 }
-const quoteHtml = now => `<p class="quote"><span aria-hidden="true">✦</span> ${quoteOfDay(now)}</p>`;
+const quoteHtml = now => {
+  const q = quoteOfDay(now);
+  const t = esc(q.t).replaceAll('{name}', name());
+  return q.a
+    ? `<figure class="quote"><blockquote>„${t}“</blockquote><figcaption>– ${esc(q.a)}</figcaption></figure>`
+    : `<p class="quote"><span aria-hidden="true">✦</span> ${t}</p>`;
+};
 
 /* ===================== Jetzt ===================== */
 function viewNow(plan, now) {
