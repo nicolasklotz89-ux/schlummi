@@ -249,6 +249,77 @@ const tab = (id, label, icon, cur) => `<a class="tab ${cur === id ? 'on' : ''}" 
   <span class="pill">${svg(icon)}</span>${label}</a>`;
 const subHead = (title, back) => `<div class="sub-head"><a class="back" href="#${back}">${svg('back')}Zurück</a></div><h1>${title}</h1>`;
 
+
+/* ===================== Spruch des Tages (eigene Texte) ===================== */
+const QUOTES = [
+  'Die Nächte sind kurz, aber das Lächeln am Morgen macht alles wett.',
+  'Du musst nicht perfekt sein. {name} braucht nur dich.',
+  'Kleine Hände, großes Herz – heute wird ein guter Tag.',
+  'Jeder Tag mit {name} ist ein erstes Mal. Genieß es.',
+  'Müde Augen, volles Herz. So fühlt sich Liebe an.',
+  'Es gibt keinen schöneren Wecker als ein glucksendes Kinderlachen.',
+  'Heute zählt nicht, was geschafft ist – sondern wie viel gekuschelt wurde.',
+  'Die Wäsche wartet. Die Babyzeit nicht.',
+  'Auch an chaotischen Tagen: Du machst das richtig gut.',
+  '{name} sucht nicht die perfekten Eltern, sondern die eigenen.',
+  'Tief durchatmen. Auch diese Phase geht vorbei – und du wirst sie vermissen.',
+  'Ein Baby macht das Haus unordentlicher und das Leben reicher.',
+  'Die schönste Aussicht? Ein schlafendes Kind.',
+  'Heute ist ein guter Tag, um {name} zum Lachen zu bringen.',
+  'Stark ist, wer nachts aufsteht und morgens trotzdem lächelt.',
+  'Kinder erinnern sich nicht an saubere Böden, sondern an Zeit mit dir.',
+  'Klein angefangen, ganz groß geliebt.',
+  'Wenn {name} schläft, darfst du auch einfach mal nichts tun.',
+  'Geduld ist, wenn man zum zehnten Mal „Nochmal!“ hört – und mitlacht.',
+  'Ihr seid ein Team. Auch um drei Uhr nachts.',
+  'Babyspeck, Babyduft, Babylachen – das Beste gibt es nur jetzt.',
+  'Heute nicht alles schaffen ist völlig okay. Da sein reicht.',
+  'Jeder Entwicklungsschritt ist ein kleines Wunder – auch der Schritt in die Pfütze.',
+  'Für die Welt bist du jemand. Für {name} bist du die Welt.',
+  'Schlaflos, aber glücklich – das neue Normal.',
+  'Ein Kinderlächeln ist der beste Kaffee.',
+  'Die Tage sind lang, die Jahre sind kurz.',
+  'Weinen ist Sprache. Du hörst zu – und das ist genug.',
+  'Mit {name} wird aus jedem Spaziergang eine Entdeckungsreise.',
+  'Deine Ruhe ist ansteckend. Ein Atemzug nach dem anderen.',
+  'Es gibt kein Handbuch. Aber es gibt dein Bauchgefühl.',
+  'Heute gibt es wieder mindestens einen Moment zum Einrahmen.',
+  'Kuscheln ist keine verlorene Zeit. Es ist die wichtigste.',
+  'Ein kleiner Mensch hat dich heute schon zum Lächeln gebracht – oder gleich.',
+  'Krümel überall? Dann wurde hier gelebt.',
+  'Du wächst mit deinem Kind. Jeden einzelnen Tag.',
+  'Manche Tage sind zum Überstehen. Morgen wird wieder gestaunt.',
+  'Babys brauchen keine Pläne. Sie brauchen Arme.',
+  '{name} weiß noch nicht viele Wörter – aber ganz genau, wer du bist.',
+  'Augenringe sind die Orden der Elternzeit.',
+  'Das größte Abenteuer passt in einen Schlafsack.',
+  'Nicht vergessen: Auch du verdienst heute eine Pause.',
+  'Glück ist klebrig, laut und riecht nach Babycreme.',
+  'Jede Nacht endet. Jeder Morgen mit {name} beginnt neu.',
+  'Ein ruhiger Moment mit {name} ist mehr wert als jede To-do-Liste.',
+  'Lachen, trösten, wiederholen. Du bist großartig darin.',
+  'Was heute anstrengend ist, ist morgen eine schöne Geschichte.',
+  'Kleine Füße, große Spuren – direkt in deinem Herzen.',
+  'Du hast heute schon viel gegeben. Sei stolz darauf.',
+  'Die beste Entscheidung des Tages: noch fünf Minuten kuscheln.',
+  'Neugier, Staunen, Lachen – {name} zeigt dir die Welt neu.',
+  'Elternsein ist anstrengend. Und das Schönste, was es gibt.',
+  'Auch kleine Fortschritte sind Fortschritte. Bei {name} und bei dir.',
+  'Wer ein Baby in den Schlaf wiegt, wiegt auch ein Stück Zukunft.',
+  'Heute ist ein Tag für Seifenblasen, Quatsch und ganz viel Nähe.',
+  'Ein Kind zu begleiten ist kein Sprint. Lauf in deinem Tempo.',
+  'Wenn alles zu viel wird: einmal an {name}s Kopf schnuppern.',
+  'Ein Tag mit Baby hat 24 Stunden Liebe – und ein paar Minuten Schlaf.',
+  'Es ist okay, Hilfe anzunehmen. Ein ganzes Dorf ist nicht zu viel.',
+  'Das Lächeln von {name} ist heute dein persönliches Highlight.',
+];
+function quoteOfDay(now = new Date()) {
+  const n = Math.floor((startOfDay(now).getTime() - now.getTimezoneOffset() * MIN) / DAY);
+  const q = QUOTES[((n % QUOTES.length) + QUOTES.length) % QUOTES.length];
+  return esc(q).replaceAll('{name}', name());
+}
+const quoteHtml = now => `<p class="quote"><span aria-hidden="true">✦</span> ${quoteOfDay(now)}</p>`;
+
 /* ===================== Jetzt ===================== */
 function viewNow(plan, now) {
   if (plan.kind === 'sleeping') return viewSleeping(plan, now);
@@ -277,11 +348,11 @@ function viewNow(plan, now) {
       hero = `<p class="label">Wach seit ${fmtTime(plan.lastEnd)}</p><p class="big num">${fmtDur(plan.awake)}</p>`;
       extra = nextCard(plan, now);
   }
-  return `<section class="hero">${hero}</section>
+  return `<div class="nowv"><section class="hero">${hero}</section>
     ${safeSleepCard()}
     ${extra}
     ${plan.kind === 'night' ? todayCard(plan, now, true) : todayCard(plan, now)}
-    ${plan.kind === 'night' ? '' : weekCard(now)}`;
+    ${quoteHtml(now)}</div>`;
 }
 
 function nextCard(plan, now) {
@@ -289,21 +360,18 @@ function nextCard(plan, now) {
   const what = n.type === 'bedtime' ? 'Schlafenszeit'
     : plan.extraNap ? 'Noch ein Schläfchen?'
     : r.naps > 1 ? `${plan.napsDone + 1}. Schläfchen` : 'Schläfchen';
-  const why = plan.status === 'early' ? `in etwa ${aboutText((n.from - now) / MIN)} – achte auf Müdigkeitszeichen`
-    : plan.status === 'now' ? `Guter Zeitpunkt, wenn ${name()} müde wirkt.`
-    : 'Etwas später als sonst – das ist okay.';
-  const src = r.learned ? `<p class="cap" style="margin-top:8px">Nach ${name()}s Muster der letzten 14 Tage.</p>` : '';
-  return `<section class="card">
+  const why = plan.status === 'early' ? `in etwa ${aboutText((n.from - now) / MIN)}`
+    : plan.status === 'now' ? 'jetzt ein guter Zeitpunkt'
+    : 'etwas später als sonst – ist okay';
+  const wk = wakeOf(n, r);
+  return `<section class="card" ${r.learned ? `title="Nach ${name()}s Muster der letzten 14 Tage"` : ''}>
     <div class="next">
       <span class="ic">${svg(n.type === 'bedtime' ? 'moon' : 'cloud', '', `stroke:var(--${n.type === 'bedtime' ? 'night' : 'nap'})`)}</span>
       <div><p class="cap">${what} · voraussichtlich</p>
-        <p class="when num">${fmtTime(targetOf(n))} Uhr</p>
-        ${wakeOf(n, r) ? `<p class="cap">Aufwachen voraussichtlich <b>${fmtTime(wakeOf(n, r))} Uhr</b></p>` : ''}
-        <p class="cap">Zeitfenster zum Hinlegen ${fmtTime(n.from)} – ${fmtTime(n.to)}</p>
-        <p class="why">${why}</p></div>
+        <p class="when num">${fmtTime(targetOf(n))} Uhr${wk ? `<span class="wk"> bis ${fmtTime(wk)}</span>` : ''}</p>
+        <p class="why">Hinlegen ${fmtTime(n.from)} – ${fmtTime(n.to)} · ${why}</p></div>
     </div>
-    ${plan.longDay ? `<p class="cap" style="margin-top:10px">Bis zur Schlafenszeit ist es lang – ein kurzes Schläfchen kann helfen.</p>` : ''}
-    ${src}
+    ${plan.longDay ? `<p class="cap" style="margin-top:8px">Bis zur Schlafenszeit ist es lang – ein kurzes Schläfchen kann helfen.</p>` : ''}
   </section>`;
 }
 
@@ -330,7 +398,8 @@ function todayCard(plan, now, compact = false) {
   return `<section class="card">
     <div class="card-h"><h2>Heute</h2>${compact ? `<span class="cap">${fmtHours(last24.total)} in 24 h</span>` : '<button class="link" data-act="add">+ Nachtragen</button>'}</div>
     ${stripHtml(day0, now, planSeg)}
-    ${compact ? '' : `<ul class="entries">${planRow}${list.map(entryRow).join('') || '<li><p class="empty">Noch keine Einträge heute.</p></li>'}</ul>`}
+    ${compact ? '' : `<ul class="entries">${list.slice(0, 3).map(entryRow).join('') || '<li><p class="empty">Noch keine Einträge heute.</p></li>'}
+      ${list.length > 3 ? `<li><button class="text-btn more-entries" data-act="day" data-day="${toInput(now).slice(0, 10)}">Alle ${list.length} Einträge von heute</button></li>` : ''}</ul>`}
   </section>`;
 }
 
@@ -385,7 +454,7 @@ function safeSleepCard() {
 
 function viewSleeping(plan, now) {
   const s = plan.running;
-  return `<section class="sleepview">
+  return `<section class="sleepview nowv">
       ${BIGMOON}
       <p class="label">${plan.night ? 'Nachtschlaf' : 'Schläfchen'}</p>
       <p class="big num">${fmtDur(plan.mins)}</p>
@@ -394,7 +463,8 @@ function viewSleeping(plan, now) {
     </section>
     ${plan.forgotten ? `<div class="notice" role="status"><b>Läuft schon ${fmtDur(plan.mins)}.</b> Vergessen zu stoppen?
       <button class="link" data-act="edit" data-id="${esc(s.id)}">Aufwachzeit eintragen</button></div>` : ''}
-    ${todayCard(plan, now, true)}`;
+    ${todayCard(plan, now, true)}
+    ${quoteHtml(now)}`;
 }
 
 function dock(plan) {

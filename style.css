@@ -336,3 +336,15 @@ dialog .toast { bottom: 24px; }
 /* Kein Zoomen: Doppeltipp-Zoom aus, Eingabefelder mind. 16px (sonst zoomt iOS beim Antippen) */
 html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 input, select, textarea { font-size: max(16px, 1em); }
+/* Jetzt: alles auf einen Bildschirm */
+.nowv .hero { padding: 10px 4px 12px; }
+.nowv .hero .big { font-size: clamp(40px, 12vw, 54px); margin: 6px 0 4px; }
+.nowv .card { padding: 14px 16px; margin-bottom: 10px; }
+.nowv .card-h { margin-bottom: 10px; }
+.nowv .entries { margin-top: 6px; }
+.nowv .entry { min-height: 46px; padding: 3px 0; }
+.next .when .wk { font-size: 17px; color: var(--text-2); font-weight: 600; }
+.more-entries { width: 100%; text-align: center; padding: 10px 0 2px; }
+.quote { text-align: center; margin: 6px 12px 0; font-size: 15px; line-height: 1.45; color: var(--text-2); font-style: italic; text-wrap: balance; }
+.quote span { color: var(--star); font-style: normal; margin-right: 2px; }
+.sleepview.nowv { padding-top: 8px; }
