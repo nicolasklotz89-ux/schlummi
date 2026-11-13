@@ -237,6 +237,7 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     firstWW: isFinite(firstWW) ? Math.round(firstWW) : null,
     lastWW: isFinite(lastWW) ? Math.round(lastWW) : null,
     napLen: napLens.length >= 3 ? Math.round(clamp(wmedian(napLens), 20, 180)) : null,
+    napSamples: napLens.length,
     naps: Math.round(napsRecent),
     napsAvg: napsRecent,
     trend,

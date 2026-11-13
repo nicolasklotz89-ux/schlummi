@@ -430,7 +430,7 @@ function patternFacts() {
       <div><small>Aufwachen</small><b>etwa ${L.wake}</b></div>
       <div><small>Schlafenszeit</small><b>etwa ${L.bed}</b></div>
       ${napAt ? `<div><small>Erstes Schläfchen</small><b>etwa ${napAt}</b></div>` : ''}
-      ${L.napLen ? `<div><small>Schläfchenlänge</small><b>${fmtDurShort(L.napLen)}</b></div>` : ''}
+      ${L.napLen ? `<div><small>Typische Schläfchenlänge</small><b>${fmtDurShort(L.napLen)}</b><small class="fnote">mittlerer Wert aus ${L.napSamples} Schläfchen</small></div>` : ''}
       ${L.firstWW ? `<div><small>Wach bis zum Schläfchen</small><b>${fmtDurShort(L.firstWW)}</b></div>` : ''}
       ${L.lastWW ? `<div><small>Wach bis zur Schlafenszeit</small><b>${fmtDurShort(L.lastWW)}</b></div>` : ''}
     </div>

@@ -332,3 +332,4 @@ dialog .toast { bottom: 24px; }
 .field.fcol { grid-template-columns: 1fr; gap: 8px; padding-block: 12px; }
 .field.fcol .ctl { display: flex; gap: 8px; align-items: center; }
 .field.fcol .ctl input { max-width: 150px; }
+.facts .fnote { margin-top: 4px; font-size: var(--fs-xs, 12px); opacity: .8; }
