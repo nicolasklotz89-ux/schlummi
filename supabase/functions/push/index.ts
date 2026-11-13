@@ -3,7 +3,7 @@
 // type "sleep": per Trigger – Meldung an die anderen Familienmitglieder bei Einschlafen/Aufwachen (mit Nachtruhe)
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2.119.0";
-import { planDay, safeTz, localHour } from "./sleepdata.js";
+import { planDay, safeTz, localHour, atClock } from "./sleepdata.js";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -53,7 +53,7 @@ async function send(sub: Sub, payload: Record<string, string>) {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
       JSON.stringify(payload),
-      { TTL: 900, urgency: "normal", timeout: 5000 },
+      { TTL: 3600, urgency: "high", timeout: 5000 },
     );
     return true;
   } catch (e) {
@@ -122,7 +122,13 @@ async function onTick() {
           .select();
         if (!ins?.length) continue; // schon erinnert
         const target = new Date(Math.min(Math.max(Math.round(n.target.getTime() / 3e5) * 3e5, n.from.getTime()), n.to.getTime()));
-        const when = `voraussichtlich ${fmt(target, sub.tz)} (${fmt(n.from, sub.tz)} – ${fmt(n.to, sub.tz)})`;
+        let wake: Date | null = null;
+        if (n.type === "nap") wake = new Date(Math.round((target.getTime() + plan.r.napLen * 6e4) / 3e5) * 3e5);
+        else if (plan.r.waketime) {
+          wake = atClock(target, plan.r.waketime, safeTz(sub.tz) || "Europe/Berlin");
+          if (wake <= target) wake = new Date(wake.getTime() + 864e5);
+        }
+        const when = `voraussichtlich ${fmt(target, sub.tz)}${wake ? ` bis ${fmt(wake, sub.tz)}` : ""} (hinlegen ${fmt(n.from, sub.tz)} – ${fmt(n.to, sub.tz)})`;
         const payload = n.type === "bedtime"
           ? { title: `Bald Schlafenszeit für ${family.child_name}`, body: `${when[0].toUpperCase()}${when.slice(1)} · achte auf Müdigkeitszeichen`, tag: "remind" }
           : { title: `Bald Zeit für ein Schläfchen?`, body: `${family.child_name} ist seit ${fmt(plan.lastEnd, sub.tz)} wach · ${when}`, tag: "remind" };
