@@ -67,6 +67,8 @@ const ls = {
   get(k, f) { try { const v = localStorage.getItem(k); return v === null ? f : JSON.parse(v); } catch { return f; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* egal */ } },
 };
+// voraussichtlicher Zeitpunkt (auf 5 min gerundet, innerhalb des Fensters)
+const targetOf = n => { const t = Math.round(n.target.getTime() / 3e5) * 3e5; return new Date(Math.min(Math.max(t, n.from.getTime()), n.to.getTime())); };
 const pct = (t, from, span) => Math.min(100, Math.max(0, ((t - from) / span) * 100));
 
 /* ===================== Icons ===================== */
@@ -284,8 +286,9 @@ function nextCard(plan, now) {
   return `<section class="card">
     <div class="next">
       <span class="ic">${svg(n.type === 'bedtime' ? 'moon' : 'cloud', '', `stroke:var(--${n.type === 'bedtime' ? 'night' : 'nap'})`)}</span>
-      <div><p class="cap">Nächster Schlaf · ${what}</p>
-        <p class="when num">etwa ${fmtTime(n.from)} – ${fmtTime(n.to)}</p>
+      <div><p class="cap">${what} · voraussichtlich</p>
+        <p class="when num">${fmtTime(targetOf(n))} Uhr</p>
+        <p class="cap">Zeitfenster ${fmtTime(n.from)} – ${fmtTime(n.to)}</p>
         <p class="why">${why}</p></div>
     </div>
     ${plan.longDay ? `<p class="cap" style="margin-top:10px">Bis zur Schlafenszeit ist es lang – ein kurzes Schläfchen kann helfen.</p>` : ''}
@@ -311,7 +314,7 @@ function todayCard(plan, now, compact = false) {
   const list = state.sleeps.filter(s => endOf(s, now) > day0).sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at));
   const planSeg = plan.next && !compact ? plan.next : null;
   const planRow = planSeg ? `<li><div class="plan-row"><span class="dot plan"></span>
-    <span class="t2">${planSeg.type === 'bedtime' ? 'Schlafenszeit' : 'Schläfchen'}<span class="k">Vorschlag, etwa ${fmtTime(planSeg.from)} – ${fmtTime(planSeg.to)}</span></span><span></span><span></span></div></li>` : '';
+    <span class="t2">${planSeg.type === 'bedtime' ? 'Schlafenszeit' : 'Schläfchen'}<span class="k">voraussichtlich ${fmtTime(targetOf(planSeg))} · ${fmtTime(planSeg.from)} – ${fmtTime(planSeg.to)}</span></span><span></span><span></span></div></li>` : '';
   const last24 = summarize(state.sleeps, new Date(+now - DAY), now, now, undefined, state.family);
   return `<section class="card">
     <div class="card-h"><h2>Heute</h2>${compact ? `<span class="cap">${fmtHours(last24.total)} in 24 h</span>` : '<button class="link" data-act="add">+ Nachtragen</button>'}</div>
