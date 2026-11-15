@@ -207,13 +207,14 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     const limit = next ? Date.parse(next.start_at) : wake.getTime() + 16 * 3600e3;
     const naps = ended.filter(s => !isNightSleep(s, now, tz, family) && Date.parse(s.start_at) > wake.getTime() && Date.parse(s.start_at) < limit);
     const age = (now - wake) / DAY;
-    const w = Math.pow(0.85, age);
+    const w = Math.pow(0.9, age); // neuere Tage zählen mehr, einzelne Ausreißer verschieben aber wenig
     const bedH = next ? localHour(new Date(next.start_at), tz) : NaN;
     days.push({
       w, age, complete: !!next,
       wakeH: localHour(wake, tz),
       bedH: bedH < 12 ? bedH + 24 : bedH,
       firstWW: naps.length ? (Date.parse(naps[0].start_at) - wake) / MIN : NaN,
+      napH: naps.length ? localHour(new Date(naps[0].start_at), tz) : NaN,
       lastWW: naps.length && next ? (Date.parse(next.start_at) - Date.parse(naps[naps.length - 1].end_at)) / MIN : NaN,
       napCount: naps.length,
       napLens: naps.map(x => durMin(x, now)),
@@ -230,7 +231,13 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     trend = diff <= -0.4 ? 'fewer' : diff >= 0.4 ? 'more' : null;
   }
   const napLens = days.flatMap(d => d.napLens.map(l => [l, d.w])).filter(p => p[0] >= 10 && p[0] <= 240);
-  const firstWW = wmedian(days.map(d => [d.firstWW, d.w]));
+  // Für die Uhrzeit des ersten Schläfchens nur Tage mit der aktuell typischen Schläfchenzahl
+  // (sonst ziehen alte Tage mit zwei Schläfchen den Wert während eines Übergangs nach vorn)
+  const typical = Math.round(napsRecent);
+  const same = days.filter(d => d.napCount === typical);
+  const base = same.length >= 3 ? same : days;
+  const firstWW = wmedian(base.map(d => [d.firstWW, d.w]));
+  const napClockH = wmedian(base.map(d => [d.napH, d.w]));
   const lastWW = wmedian(complete.map(d => [d.lastWW, d.w]));
   return {
     days: complete.length,
@@ -238,6 +245,7 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     lastWW: isFinite(lastWW) ? Math.round(lastWW) : null,
     napLen: napLens.length >= 3 ? Math.round(clamp(wmedian(napLens), 20, 180)) : null,
     napSamples: napLens.length,
+    napClock: isFinite(napClockH) ? toClock(napClockH) : null,
     naps: Math.round(napsRecent),
     napsAvg: napsRecent,
     trend,
@@ -333,9 +341,20 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     const untilBed = (B - lastEnd) / MIN;
     let win = remNaps ? (untilBed - remNaps * r.napLen) / (remNaps + 1) : untilBed;
     win = clamp(win, w.min * 0.85, w.max * 1.15);
-    // Erstes Schläfchen nach eurem persönlichen Muster (wenn keine feste Wachzeit eingestellt ist)
+    // Erstes Schläfchen nach eurem persönlichen Muster (wenn keine feste Wachzeit eingestellt ist).
+    // Bei einem Schläfchen am Tag richtet es sich vor allem nach der üblichen Uhrzeit (innere Uhr),
+    // nicht nach dem Aufwachen – ein später Morgen verschiebt den Mittagsschlaf kaum.
+    // Bei mehreren Schläfchen zählen Uhrzeit und Wachzeit je zur Hälfte.
     if (r.learned?.firstWW && !w.custom && napsDone === 0 && remNaps) {
-      win = Math.min(r.learned.firstWW, untilBed - remNaps * r.napLen - 60);
+      const byWake = r.learned.firstWW;
+      let want = byWake;
+      if (r.learned.napClock) {
+        let c = atClock(dayStart, r.learned.napClock, tz);
+        const byClock = (c - lastEnd) / MIN;
+        want = r.naps <= 1 ? byClock : (byClock + byWake) / 2;
+      }
+      win = clamp(want, w.min * 0.75, w.max * 1.25);
+      win = Math.min(win, untilBed - remNaps * r.napLen - 60);
       win = Math.max(win, w.min * 0.6);
     }
     const napAt = new Date(lastEnd.getTime() + win * MIN);

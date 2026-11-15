@@ -168,3 +168,19 @@ test('Persönliches Muster wird aus 14 Tagen gelernt', async () => {
   assert.equal(hm(plan.next.target), '12:15');
   assert.equal(hm(plan.upcoming.at(-1).at), '20:10');
 });
+
+test('Ein Schläfchen am Tag: spätes Aufwachen verschiebt den Mittagsschlaf kaum', () => {
+  const toddler = { birthdate: '2025-08-14', naps_per_day: 1 };
+  const sleeps = [];
+  for (let d = 1; d <= 10; d++) {
+    const day = `2026-11-${String(d).padStart(2, '0')}`;
+    const next = `2026-11-${String(d + 1).padStart(2, '0')}`;
+    sleeps.push(sl(`${day}T12:30`, `${day}T14:00`), sl(`${day}T19:30`, `${next}T07:00`));
+  }
+  // Ausnahme gestern: sehr später Mittagsschlaf; heute bis 8 Uhr geschlafen
+  sleeps.splice(-2, 2, sl('2026-11-10T13:45', '2026-11-10T15:15'), sl('2026-11-10T19:45', '2026-11-11T08:00'));
+  const p = planDay(toddler, sleeps, L('2026-11-11T08:30'), TZ);
+  assert.equal(p.kind, 'nap');
+  const t = hm(p.next.target);
+  assert.ok(t >= '12:15' && t <= '12:50', `Vorschlag ${t} sollte nahe 12:30 liegen`);
+});

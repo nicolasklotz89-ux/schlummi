@@ -481,7 +481,7 @@ function patternFacts() {
   const L = r.learned;
   if (r.newborn) return `<section class="card"><h2>Muster</h2><p class="cap" style="margin-top:6px">In den ersten Monaten gibt es noch keinen festen Rhythmus. Schlummi zeigt Muster ab etwa 3 Monaten.</p></section>`;
   if (!L) return `<section class="card"><h2>${name()}s Muster</h2><p class="cap" style="margin-top:6px">Sobald etwa eine Woche erfasst ist, erkennt Schlummi ${name()}s Rhythmus und passt die Vorschläge daran an.</p></section>`;
-  const napAt = L.firstWW != null && L.wake ? (() => { const [h, m] = L.wake.split(':').map(Number); const t = h * 60 + m + L.firstWW; return `${pad(Math.floor(t / 60) % 24)}:${pad(Math.round(t % 60))}`; })() : null;
+  const napAt = L.napClock;
   const trend = L.trend === 'fewer' ? `Seit einigen Tagen meist ${L.naps} Schläfchen am Tag, vorher öfter mehr – ein typischer Übergang.`
     : L.trend === 'more' ? `Zuletzt öfter ${L.naps} Schläfchen am Tag als vorher.`
     : `Meist ${L.naps} Schläfchen am Tag.`;
