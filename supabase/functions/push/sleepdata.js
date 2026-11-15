@@ -256,6 +256,21 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     shiftK = clamp((pts.length * own + m * prior) / (pts.length + m), kMin, kMax);
     shiftLearned = true;
   }
+  // Länge des ersten Schläfchens: hängt oft davon ab, wie lange das Kind vorher wach war.
+  // Steigung (min Schlaf pro min Wachzeit) robust gelernt, vorsichtig Richtung 0 gezogen, begrenzt auf 0 … 0,5.
+  let napLenK = 0, napLenLearned = false;
+  const lp = base.filter(d => isFinite(d.firstWW) && d.napLens.length && d.napLens[0] >= 10 && d.napLens[0] <= 240);
+  const ls = [];
+  for (let i = 0; i < lp.length; i++) for (let j = i + 1; j < lp.length; j++) {
+    const dx = lp[j].firstWW - lp[i].firstWW;
+    if (Math.abs(dx) >= 15) ls.push((lp[j].napLens[0] - lp[i].napLens[0]) / dx);
+  }
+  if (lp.length >= 6 && ls.length >= 10) {
+    ls.sort((a, b) => a - b);
+    napLenK = clamp((lp.length * ls[Math.floor(ls.length / 2)]) / (lp.length + 6), 0, 0.5);
+    napLenLearned = napLenK >= 0.05;
+  }
+  const firstNapLen = wmedian(lp.map(d => [d.napLens[0], d.w]));
   const lastWW = wmedian(complete.map(d => [d.lastWW, d.w]));
   return {
     days: complete.length,
@@ -265,6 +280,8 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     napSamples: napLens.length,
     napClock: isFinite(napClockH) ? toClock(napClockH) : null,
     shiftK: Math.round(shiftK * 100) / 100, shiftLearned,
+    napLenK: Math.round(napLenK * 100) / 100, napLenLearned,
+    firstNapLen: isFinite(firstNapLen) ? Math.round(firstNapLen) : null,
     naps: Math.round(napsRecent),
     napsAvg: napsRecent,
     trend,
@@ -295,6 +312,17 @@ export function rhythm(family, now = new Date(), sleeps = [], tz) {
   };
 }
 
+/**
+ * Voraussichtliche Länge eines Schläfchens in Minuten.
+ * Erstes Schläfchen: übliche Länge, angepasst an die Wachzeit davor (gelernt); sonst übliche Länge.
+ */
+export function napLenFor(r, wakeMin, first = true) {
+  const L = r.learned;
+  if (!first || !L?.firstNapLen || !L.firstWW || !isFinite(wakeMin)) return r.napLen;
+  const adj = clamp(L.napLenK * (wakeMin - L.firstWW), -45, 45);
+  return Math.round(clamp(L.firstNapLen + adj, 20, 180));
+}
+
 /* ---------- Tagesplan ---------- */
 
 /**
@@ -316,12 +344,19 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     const isNight = night(running);
     const mins = durMin(running, now);
     const forgotten = isNight ? mins > 14 * 60 : mins > Math.max(240, r.napLen * 3);
-    let wakeAt = null;
+    let wakeAt = null, napLen = null;
     if (isNight && r.waketime) {
       wakeAt = atClock(now, r.waketime, tz);
       if (wakeAt <= new Date(running.start_at)) wakeAt = new Date(wakeAt.getTime() + DAY);
+    } else if (!isNight) {
+      const st = Date.parse(running.start_at);
+      const before = sleeps.filter(s => s.end_at && Date.parse(s.end_at) <= st).sort((a, b) => Date.parse(b.end_at) - Date.parse(a.end_at));
+      const prev = before[0];
+      const first = prev ? night(prev) : true; // erstes Schläfchen des Tages, wenn davor die Nacht war
+      napLen = napLenFor(r, prev ? (st - Date.parse(prev.end_at)) / MIN : NaN, first);
+      wakeAt = new Date(st + napLen * MIN);
     }
-    return { kind: 'sleeping', r, running, night: isNight, wakeAt, forgotten, mins };
+    return { kind: 'sleeping', r, running, night: isNight, wakeAt, napLen, forgotten, mins };
   }
 
   const ended = sleeps.filter(s => s.end_at).sort((a, b) => Date.parse(b.end_at) - Date.parse(a.end_at));
@@ -408,6 +443,7 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
   if (next.from < lastEnd) next.from = new Date(lastEnd);
   if (next.to < next.from) next.to = new Date(next.from);
   next.settle = settle;
+  if (next.type === 'nap') next.napLen = napLenFor(r, (next.target - lastEnd) / MIN, napsDone === 0);
   const status = now < next.from ? 'early' : now <= next.to ? 'now' : 'late';
   return { kind: next.type, status, r, last, lastEnd, awake, napsDone, next, upcoming, longDay, extraNap, dayStart };
 }

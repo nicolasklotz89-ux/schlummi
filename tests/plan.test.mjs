@@ -209,3 +209,20 @@ test('Hinlegen-Fenster endet um die Einschlafdauer vor dem vorhergesagten Einsch
   const p0 = planDay({ ...baby7, settle_min: 0 }, [sl('2026-11-11T19:30', '2026-11-12T06:30')], L('2026-11-12T07:00'), TZ);
   assert.equal(+p0.next.to, +p0.next.target);
 });
+
+test('Schläfchenlänge: nach längerer Wachzeit wird ein längeres Schläfchen erwartet (gelernt)', async () => {
+  const { rhythm, napLenFor } = await import('../sleepdata.js');
+  const toddler = { birthdate: '2025-08-14', naps_per_day: 1 };
+  const sleeps = [];
+  // je länger wach (Start 11:30 … 13:30), desto länger das Schläfchen (80 … 120 min)
+  const starts = ['11:30', '13:30', '12:30', '12:00', '13:00', '11:45', '13:15', '12:15', '12:45', '11:30', '13:30', '12:30'];
+  starts.forEach((t, i) => {
+    const d = i + 1, day = `2026-11-${String(d).padStart(2, '0')}`, next = `2026-11-${String(d + 1).padStart(2, '0')}`;
+    const [h, m] = t.split(':').map(Number), len = 80 + ((h * 60 + m) - 690) / 3;
+    const endM = h * 60 + m + len;
+    sleeps.push(sl(`${day}T${t}`, `${day}T${String(Math.floor(endM / 60)).padStart(2, '0')}:${String(Math.round(endM % 60)).padStart(2, '0')}`), sl(`${day}T19:30`, `${next}T07:00`));
+  });
+  const r = rhythm(toddler, L('2026-11-13T08:00'), sleeps, TZ);
+  assert.ok(r.learned.napLenLearned, 'Zusammenhang erkannt');
+  assert.ok(napLenFor(r, 6.5 * 60) > napLenFor(r, 4.5 * 60), 'länger wach → längeres Schläfchen');
+});

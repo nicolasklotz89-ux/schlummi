@@ -123,7 +123,7 @@ async function onTick() {
         if (!ins?.length) continue; // schon erinnert
         const target = n.target; // exakt, nicht gerundet
         let wake: Date | null = null;
-        if (n.type === "nap") wake = new Date(target.getTime() + plan.r.napLen * 6e4);
+        if (n.type === "nap") wake = new Date(target.getTime() + (n.napLen ?? plan.r.napLen) * 6e4);
         else if (plan.r.waketime) {
           wake = atClock(target, plan.r.waketime, safeTz(sub.tz) || "Europe/Berlin");
           if (wake <= target) wake = new Date(wake.getTime() + 864e5);

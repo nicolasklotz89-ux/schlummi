@@ -72,7 +72,7 @@ const targetOf = n => n.target;
 // voraussichtliches Aufwachen: Schläfchen = Beginn + übliche Schläfchenlänge, Nacht = übliche Aufwachzeit am nächsten Morgen
 const wakeOf = (n, r) => {
   const t = targetOf(n);
-  if (n.type === 'nap') return new Date(t.getTime() + r.napLen * MIN);
+  if (n.type === 'nap') return new Date(t.getTime() + (n.napLen ?? r.napLen) * MIN);
   if (!r.waketime) return null;
   const [h, m] = r.waketime.split(':').map(Number);
   const w = new Date(t); w.setHours(h, m, 0, 0);
@@ -447,10 +447,7 @@ function viewSleeping(plan, now) {
   const s = plan.running;
   // voraussichtliches Aufwachen: Nacht = übliche Aufwachzeit, Schläfchen = Einschlafen + übliche Schläfchenlänge
   let wakeAt = plan.wakeAt;
-  if (!plan.night) {
-    wakeAt = new Date(Date.parse(s.start_at) + plan.r.napLen * MIN);
-    if (wakeAt < now) wakeAt = null; // schon länger als üblich – keine Zeit in der Vergangenheit anzeigen
-  }
+  if (!plan.night && wakeAt && wakeAt < now) wakeAt = null; // schon länger als erwartet – keine Zeit in der Vergangenheit anzeigen
   return `<section class="sleepview nowv">
       ${BIGMOON}
       <p class="label">${plan.night ? 'Nachtschlaf' : 'Schläfchen'}</p>
@@ -497,7 +494,7 @@ function patternFacts() {
       <div><small>Aufwachen</small><b>etwa ${L.wake}</b></div>
       <div><small>Schlafenszeit</small><b>etwa ${L.bed}</b></div>
       ${napAt ? `<div><small>Erstes Schläfchen</small><b>etwa ${napAt}</b></div>` : ''}
-      ${L.napLen ? `<div><small>Typische Schläfchenlänge</small><b>${fmtDurShort(L.napLen)}</b><small class="fnote">mittlerer Wert aus ${L.napSamples} Schläfchen</small></div>` : ''}
+      ${L.napLen ? `<div><small>Typische Schläfchenlänge</small><b>${fmtDurShort(L.napLen)}</b><small class="fnote">mittlerer Wert aus ${L.napSamples} Schläfchen${L.napLenLearned ? ` · pro Stunde länger wach etwa ${Math.round(L.napLenK * 60)} min länger` : ''}</small></div>` : ''}
       ${L.firstWW ? `<div><small>Wach bis zum Schläfchen</small><b>${fmtDurShort(L.firstWW)}</b></div>` : ''}
       ${L.lastWW ? `<div><small>Wach bis zur Schlafenszeit</small><b>${fmtDurShort(L.lastWW)}</b></div>` : ''}
     </div>
