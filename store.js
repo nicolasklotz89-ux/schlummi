@@ -23,7 +23,7 @@ export const newId = () => (crypto.randomUUID ? crypto.randomUUID()
     return (c === 'x' ? r : (r & 3) | 8).toString(16);
   }));
 const byStartDesc = (a, b) => Date.parse(b.start_at) - Date.parse(a.start_at);
-const FAMILY_FIELDS = ['child_name', 'birthdate', 'due_date', 'naps_per_day', 'bedtime', 'waketime', 'wake_window'];
+const FAMILY_FIELDS = ['child_name', 'birthdate', 'due_date', 'naps_per_day', 'bedtime', 'waketime', 'wake_window', 'settle_min'];
 const SLEEP_FIELDS = ['start_at', 'end_at', 'note', 'kind', 'tags'];
 const pick = (o, keys) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]]));
 

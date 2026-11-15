@@ -399,11 +399,15 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     extraNap = !isBed && napsDone >= r.naps;
     next = { type: isBed ? 'bedtime' : 'nap', target };
   }
-  // exakte Zeiten (nicht gerundet): Zeitfenster ±30 min um den berechneten Zeitpunkt
+  // target = voraussichtliches EINSCHLAFEN (exakt, nicht gerundet).
+  // Hinlegen davor: Zeitfenster von 20 min, das um die Einschlafdauer der Familie (Standard 15 min) früher endet.
+  const settle = clamp(Number(family.settle_min ?? 15) || 0, 0, 60);
   next.target = new Date(Math.floor(next.target.getTime() / MIN) * MIN);
-  next.from = new Date(next.target.getTime() - 30 * MIN);
-  next.to = new Date(next.target.getTime() + 30 * MIN);
+  next.to = new Date(next.target.getTime() - settle * MIN);
+  next.from = new Date(next.to.getTime() - 20 * MIN);
   if (next.from < lastEnd) next.from = new Date(lastEnd);
+  if (next.to < next.from) next.to = new Date(next.from);
+  next.settle = settle;
   const status = now < next.from ? 'early' : now <= next.to ? 'now' : 'late';
   return { kind: next.type, status, r, last, lastEnd, awake, napsDone, next, upcoming, longDay, extraNap, dayStart };
 }
@@ -426,7 +430,7 @@ export function accuracy(family, sleeps, now = new Date(), tz, days = 14) {
     const a = Date.parse(actual.start_at);
     res[type === 'nap' ? 'nap' : 'bed'].push({
       day: actual.start_at, err: Math.round((a - p.next.target.getTime()) / MIN),
-      hit: a >= p.next.from.getTime() && a <= p.next.to.getTime(),
+      hit: Math.abs(a - p.next.target.getTime()) <= 30 * MIN, // Einschlafen höchstens 30 min neben der Vorhersage
     });
   };
   for (const n of ended) {

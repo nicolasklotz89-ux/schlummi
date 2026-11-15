@@ -352,13 +352,13 @@ function nextCard(plan, now) {
     : plan.extraNap ? 'Noch ein Schläfchen?'
     : r.naps > 1 ? `${plan.napsDone + 1}. Schläfchen` : 'Schläfchen';
   const why = plan.status === 'early' ? `in ${fmtDur((n.from - now) / MIN)}`
-    : plan.status === 'now' ? 'jetzt ein guter Zeitpunkt'
-    : 'etwas später als sonst – ist okay';
+    : plan.status === 'now' ? 'jetzt hinlegen'
+    : 'gern jetzt – es ist schon etwas später';
   const wk = wakeOf(n, r);
   return `<section class="card" ${r.learned ? `title="Nach ${name()}s Muster der letzten 14 Tage"` : ''}>
     <div class="next">
       <span class="ic">${svg(n.type === 'bedtime' ? 'moon' : 'cloud', '', `stroke:var(--${n.type === 'bedtime' ? 'night' : 'nap'})`)}</span>
-      <div><p class="cap">${what} · voraussichtlich</p>
+      <div><p class="cap">${what} · einschlafen voraussichtlich</p>
         <p class="when num">${fmtTime(targetOf(n))} Uhr${wk ? `<span class="wk"> bis ${fmtTime(wk)}</span>` : ''}</p>
         <p class="why">Hinlegen ${fmtTime(n.from)} – ${fmtTime(n.to)} · ${why}</p></div>
     </div>
@@ -382,7 +382,7 @@ function stripHtml(day0, now, planSeg) {
 function todayCard(plan, now, compact = false) {
   const day0 = startOfDay(now);
   const list = state.sleeps.filter(s => endOf(s, now) > day0).sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at));
-  const planSeg = plan.next && !compact ? plan.next : null;
+  const planSeg = plan.next && !compact ? { ...plan.next, from: plan.next.target, to: wakeOf(plan.next, plan.r) || new Date(plan.next.target.getTime() + 60 * MIN) } : null;
   const planRow = planSeg ? `<li><div class="plan-row"><span class="dot plan"></span>
     <span class="t2">${planSeg.type === 'bedtime' ? 'Schlafenszeit' : 'Schläfchen'}<span class="k">voraussichtlich ${fmtTime(targetOf(planSeg))}${wakeOf(planSeg, plan.r) ? ` – ${fmtTime(wakeOf(planSeg, plan.r))}` : ''}</span></span><span></span><span></span></div></li>` : '';
   const last24 = summarize(state.sleeps, new Date(+now - DAY), now, now, undefined, state.family);
@@ -509,10 +509,10 @@ function patternFacts() {
 function accuracyHtml() {
   const a = accuracy(state.family, state.sleeps, new Date());
   if (a.nap.n + a.bed.n < 3) return '';
-  const row = (label, x) => x.n ? `<div><small>${label}</small><b>${x.hits} von ${x.n}</b><small class="fnote">im Zeitfenster · Ø ${x.avg} min daneben</small></div>` : '';
+  const row = (label, x) => x.n ? `<div><small>${label}</small><b>${x.hits} von ${x.n}</b><small class="fnote">höchstens 30 min daneben · Ø ${x.avg} min</small></div>` : '';
   return `<p class="gtitle" style="margin:14px 0 6px">So gut passten die Vorschläge (14 Tage)</p>
     <div class="facts">${row('Schläfchen', a.nap)}${row('Schlafenszeit', a.bed)}</div>
-    <p class="cap" style="margin-top:6px">Schlummi prüft jeden Tag rückwirkend, wie gut der Vorschlag gepasst hätte, und lernt daraus.</p>`;
+    <p class="cap" style="margin-top:6px">Schlummi prüft jeden Tag rückwirkend, wie genau das vorhergesagte Einschlafen gepasst hätte, und lernt daraus.</p>`;
 }
 
 function patternRows(n) {
@@ -718,6 +718,8 @@ function setRhythm() {
       <label class="field"><span>Wachzeit vor dem Schläfchen</span><select data-set="wake_window">
         <option value="">${L?.firstWW ? `Auto (${fmtDurShort(L.firstWW)})` : 'Auto (nach Alter)'}</option>
         ${opts.map(m => `<option value="${m}" ${Number(f.wake_window) === m ? 'selected' : ''}>etwa ${fmtDurShort(m)}</option>`).join('')}</select></label>
+      <label class="field"><span>Einschlafdauer<small>vom Hinlegen bis zum Einschlafen</small></span><select data-set="settle_min">
+        ${[0, 5, 10, 15, 20, 25, 30, 40, 45].map(m => `<option value="${m}" ${Number(f.settle_min ?? 15) === m ? 'selected' : ''}>${m ? m + ' min' : 'sofort'}</option>`).join('')}</select></label>
     </div>
     <p class="hint">„Auto“ lernt aus euren letzten 14 Tagen – das trifft meist am besten. Eine feste Zeit nutzt Schlummi als Ziel. Änderungen werden sofort gespeichert.</p>`;
 }
@@ -1250,6 +1252,7 @@ document.addEventListener('change', e => {
         if (diff < -30 || diff > 140) throw new Error('Der errechnete Termin passt nicht zum Geburtsdatum.');
       }
       if (['naps_per_day', 'wake_window'].includes(key)) v = v === '' ? null : Number(v);
+      if (key === 'settle_min') v = Number(v);
       if (['due_date', 'bedtime', 'waketime'].includes(key) && !v) v = null;
       await saveFamily({ [key]: v });
       if (key !== 'child_name') render();

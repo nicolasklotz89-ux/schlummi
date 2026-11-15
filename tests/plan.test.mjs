@@ -199,3 +199,13 @@ test('Selbstkontrolle: Treffsicherheit wird rückwirkend berechnet', async () =>
   // sobald genug gelernt ist (ab ca. Tag 6), trifft ein regelmäßiger Rhythmus jedes Mal
   assert.ok(a.nap.list.slice(-7).every(x => x.hit), 'regelmäßiger Rhythmus wird getroffen');
 });
+
+test('Hinlegen-Fenster endet um die Einschlafdauer vor dem vorhergesagten Einschlafen', () => {
+  const f = { ...baby7, settle_min: 15 };
+  const p = planDay(f, [sl('2026-11-11T19:30', '2026-11-12T06:30')], L('2026-11-12T07:00'), TZ);
+  assert.equal(p.kind, 'nap');
+  assert.equal((p.next.target - p.next.to) / 6e4, 15);
+  assert.equal((p.next.to - p.next.from) / 6e4, 20);
+  const p0 = planDay({ ...baby7, settle_min: 0 }, [sl('2026-11-11T19:30', '2026-11-12T06:30')], L('2026-11-12T07:00'), TZ);
+  assert.equal(+p0.next.to, +p0.next.target);
+});
