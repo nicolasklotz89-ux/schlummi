@@ -238,6 +238,24 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
   const base = same.length >= 3 ? same : days;
   const firstWW = wmedian(base.map(d => [d.firstWW, d.w]));
   const napClockH = wmedian(base.map(d => [d.napH, d.w]));
+  // Wie stark verschiebt ein späterer Morgen das erste Schläfchen? Aus den eigenen Tagen gelernt
+  // (robuste Steigung nach Theil-Sen), begrenzt auf sinnvolle Werte.
+  const kMin = typical <= 1 ? 0.3 : 0.4, kMax = typical <= 1 ? 0.8 : 1;
+  let shiftK = typical <= 1 ? 0.5 : 0.8, shiftLearned = false;
+  const pts = base.filter(d => isFinite(d.napH));
+  const slopes = [];
+  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+    const dx = pts[j].wakeH - pts[i].wakeH;
+    if (Math.abs(dx) >= 0.25) slopes.push((pts[j].napH - pts[i].napH) / dx);
+  }
+  if (pts.length >= 6 && slopes.length >= 10) {
+    slopes.sort((a, b) => a - b);
+    // mit wenigen Tagen vorsichtig: zum Erfahrungswert hin ziehen (je mehr Tage, desto mehr zählt das Eigene)
+    const prior = shiftK, m = 8;
+    const own = slopes[Math.floor(slopes.length / 2)];
+    shiftK = clamp((pts.length * own + m * prior) / (pts.length + m), kMin, kMax);
+    shiftLearned = true;
+  }
   const lastWW = wmedian(complete.map(d => [d.lastWW, d.w]));
   return {
     days: complete.length,
@@ -246,6 +264,7 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     napLen: napLens.length >= 3 ? Math.round(clamp(wmedian(napLens), 20, 180)) : null,
     napSamples: napLens.length,
     napClock: isFinite(napClockH) ? toClock(napClockH) : null,
+    shiftK: Math.round(shiftK * 100) / 100, shiftLearned,
     naps: Math.round(napsRecent),
     napsAvg: napsRecent,
     trend,
@@ -341,17 +360,16 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     const untilBed = (B - lastEnd) / MIN;
     let win = remNaps ? (untilBed - remNaps * r.napLen) / (remNaps + 1) : untilBed;
     win = clamp(win, w.min * 0.85, w.max * 1.15);
-    // Erstes Schläfchen nach eurem persönlichen Muster (wenn keine feste Wachzeit eingestellt ist).
-    // Bei einem Schläfchen am Tag richtet es sich vor allem nach der üblichen Uhrzeit (innere Uhr),
-    // nicht nach dem Aufwachen – ein später Morgen verschiebt den Mittagsschlaf kaum.
-    // Bei mehreren Schläfchen zählen Uhrzeit und Wachzeit je zur Hälfte.
+    // Erstes Schläfchen nach eurem persönlichen Muster (wenn keine feste Wachzeit eingestellt ist):
+    // übliche Uhrzeit, verschoben um einen Teil der heutigen Abweichung beim Aufwachen.
+    // Wie groß dieser Teil ist, lernt Schlummi aus euren eigenen Tagen (shiftK, z. B. 0,4 = 1 h später wach → 24 min später).
     if (r.learned?.firstWW && !w.custom && napsDone === 0 && remNaps) {
-      const byWake = r.learned.firstWW;
-      let want = byWake;
-      if (r.learned.napClock) {
-        let c = atClock(dayStart, r.learned.napClock, tz);
-        const byClock = (c - lastEnd) / MIN;
-        want = r.naps <= 1 ? byClock : (byClock + byWake) / 2;
+      let want = r.learned.firstWW;
+      if (r.learned.napClock && r.learned.wake) {
+        const usual = atClock(dayStart, r.learned.napClock, tz);
+        const wakeDev = lastNight ? clamp((dayStart - atClock(dayStart, r.learned.wake, tz)) / MIN, -150, 150) : 0;
+        const target = usual.getTime() + r.learned.shiftK * wakeDev * MIN;
+        want = (target - lastEnd) / MIN;
       }
       win = clamp(want, w.min * 0.75, w.max * 1.25);
       win = Math.min(win, untilBed - remNaps * r.napLen - 60);
@@ -386,6 +404,42 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
   if (next.from < lastEnd) next.from = round5(lastEnd);
   const status = now < next.from ? 'early' : now <= next.to ? 'now' : 'late';
   return { kind: next.type, status, r, last, lastEnd, awake, napsDone, next, upcoming, longDay, extraNap, dayStart };
+}
+
+/* ---------- Selbstkontrolle ---------- */
+
+/**
+ * Prüft rückwirkend, wie gut die Vorschläge der letzten Tage gepasst hätten:
+ * Für jeden Tag wird mit dem damaligen Wissensstand geplant (30 min nach dem Aufwachen bzw. nach dem letzten Schläfchen)
+ * und mit dem tatsächlichen Einschlafen verglichen.
+ */
+export function accuracy(family, sleeps, now = new Date(), tz, days = 14) {
+  const ended = sleeps.filter(s => s.end_at).sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at));
+  const isN = s => durMin(s, now) >= 240 && isNightSleep(s, now, tz, family);
+  const res = { nap: [], bed: [] };
+  const check = (at, actual, type) => {
+    const before = sleeps.filter(s => Date.parse(s.start_at) < at.getTime()).map(s => (s.end_at && Date.parse(s.end_at) > at.getTime() ? { ...s, end_at: null } : s));
+    const p = planDay(family, before, at, tz);
+    if (p.kind !== type || !p.next) return;
+    const a = Date.parse(actual.start_at);
+    res[type === 'nap' ? 'nap' : 'bed'].push({
+      day: actual.start_at, err: Math.round((a - p.next.target.getTime()) / MIN),
+      hit: a >= p.next.from.getTime() && a <= p.next.to.getTime(),
+    });
+  };
+  for (const n of ended) {
+    if (!isN(n)) continue;
+    const wake = new Date(n.end_at);
+    if (wake < now - days * DAY || wake > now - 2 * 3600e3) continue;
+    const dayS = ended.filter(s => Date.parse(s.start_at) > wake.getTime() && Date.parse(s.start_at) < wake.getTime() + 18 * 3600e3);
+    const firstNap = dayS.find(s => !isN(s));
+    if (firstNap) check(new Date(wake.getTime() + 30 * MIN), firstNap, 'nap');
+    const nextNight = dayS.find(isN);
+    const lastNap = [...dayS].reverse().find(s => !isN(s) && (!nextNight || Date.parse(s.start_at) < Date.parse(nextNight.start_at)));
+    if (nextNight && lastNap) check(new Date(Date.parse(lastNap.end_at) + 30 * MIN), nextNight, 'bedtime');
+  }
+  const sum = a => ({ n: a.length, hits: a.filter(x => x.hit).length, avg: a.length ? Math.round(a.reduce((t, x) => t + Math.abs(x.err), 0) / a.length) : null, list: a });
+  return { nap: sum(res.nap), bed: sum(res.bed) };
 }
 
 /* ---------- Auswertung ---------- */

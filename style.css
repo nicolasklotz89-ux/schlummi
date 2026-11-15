@@ -351,3 +351,5 @@ input, select, textarea { font-size: max(16px, 1em); }
 figure.quote { margin: 6px 16px 0; text-align: center; }
 figure.quote blockquote { margin: 0; font-size: 15px; line-height: 1.45; color: var(--text); font-style: italic; text-wrap: balance; }
 figure.quote figcaption { margin-top: 4px; font-size: 12px; color: var(--text-2); font-style: normal; }
+.ask-time { text-align: center; font-size: 44px; font-weight: 700; margin: 4px 0 2px; }
+.ask-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

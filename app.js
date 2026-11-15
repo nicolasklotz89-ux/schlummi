@@ -2,7 +2,7 @@ import { CONFIG } from './config.js';
 import { LocalStore, SupabaseStore, friendlyError, newId } from './store.js';
 import {
   ageLabel, monthsLabel, effectiveAge, totalSleepFor, planDay, rhythm,
-  isNightSleep, summarize, nightWakings, overlapMin,
+  isNightSleep, summarize, nightWakings, overlapMin, accuracy,
 } from './sleepdata.js';
 
 const VERSION = '2.0.0';
@@ -495,8 +495,18 @@ function patternFacts() {
       ${L.firstWW ? `<div><small>Wach bis zum Schläfchen</small><b>${fmtDurShort(L.firstWW)}</b></div>` : ''}
       ${L.lastWW ? `<div><small>Wach bis zur Schlafenszeit</small><b>${fmtDurShort(L.lastWW)}</b></div>` : ''}
     </div>
-    <div class="obs">${svg('spark')}<p class="cap">${trend} Die Vorschläge auf dem Startbildschirm richten sich nach diesem Muster.</p></div>
+    <div class="obs">${svg('spark')}<p class="cap">${trend}${L.shiftLearned ? ` Wacht ${name()} später auf, verschiebt sich das Schläfchen meist um etwa ${Math.round(L.shiftK * 60 / 5) * 5} Minuten pro Stunde.` : ''} Die Vorschläge auf dem Startbildschirm richten sich nach diesem Muster.</p></div>
+    ${accuracyHtml()}
   </section>`;
+}
+
+function accuracyHtml() {
+  const a = accuracy(state.family, state.sleeps, new Date());
+  if (a.nap.n + a.bed.n < 3) return '';
+  const row = (label, x) => x.n ? `<div><small>${label}</small><b>${x.hits} von ${x.n}</b><small class="fnote">im Zeitfenster · Ø ${x.avg} min daneben</small></div>` : '';
+  return `<p class="gtitle" style="margin:14px 0 6px">So gut passten die Vorschläge (14 Tage)</p>
+    <div class="facts">${row('Schläfchen', a.nap)}${row('Schlafenszeit', a.bed)}</div>
+    <p class="cap" style="margin-top:6px">Schlummi prüft jeden Tag rückwirkend, wie gut der Vorschlag gepasst hätte, und lernt daraus.</p>`;
 }
 
 function patternRows(n) {
@@ -872,7 +882,7 @@ function openDay(iso) {
 let ed = null;
 const ITEM = 44;
 
-function openEditor({ sleep = null, preset = null, mode = null } = {}) {
+function openEditor({ sleep = null, preset = null, mode = null, focus = null } = {}) {
   const now = new Date();
   const s = sleep || preset || {};
   const start = s.start_at ? new Date(s.start_at) : new Date(+now - 60 * MIN);
@@ -882,7 +892,7 @@ function openEditor({ sleep = null, preset = null, mode = null } = {}) {
   ed = {
     id: sleep?.id || null, mode: mode || (sleep ? 'edit' : 'new'),
     start, end, running, kind: s.kind || null, tags: new Set(s.tags || []), note: s.note || '',
-    open: mode === 'start' || !sleep ? 'start' : null, more: !!((s.tags && s.tags.length) || s.note),
+    open: focus || (mode === 'start' || !sleep ? 'start' : null), more: !!((s.tags && s.tags.length) || s.note),
   };
   renderEditor();
 }
@@ -1044,7 +1054,7 @@ async function startSleep(kind) {
   if (state.sleeps.some(s => !s.end_at)) return;
   const row = await state.store.addSleep({ start_at: new Date().toISOString(), kind: kind || null });
   navigator.vibrate?.(30);
-  toast('Schlaf gestartet', { action: { label: 'Rückgängig', fn: () => state.store.deleteSleep(row.id) } });
+  askAdjust('start', row);
 }
 async function stopSleep() {
   const r = state.sleeps.find(s => !s.end_at);
@@ -1053,10 +1063,24 @@ async function stopSleep() {
   const ok = await state.store.stopSleep(r.id, end.toISOString());
   navigator.vibrate?.(30);
   if (!ok) { toast('Dieser Schlaf wurde schon auf dem anderen Gerät beendet.'); await refresh(); return; }
-  toast(`${fmtDur((end - new Date(r.start_at)) / MIN)} geschlafen`, {
-    action: { label: 'Zeit ändern', fn: () => openEditor({ sleep: state.sleeps.find(s => s.id === r.id) || { ...r, end_at: end.toISOString() } }) },
-  });
+  askAdjust('stop', { ...r, end_at: end.toISOString() });
 }
+// Kurze Nachfrage nach dem Tippen auf den großen Knopf: Uhrzeit anpassen?
+let pending = null;
+function askAdjust(type, row) {
+  pending = { type, row };
+  const t = new Date(type === 'start' ? row.start_at : row.end_at);
+  const dur = type === 'stop' ? ` · ${fmtDur((t - new Date(row.start_at)) / MIN)} geschlafen` : '';
+  openSheet(`${sheetHead(type === 'start' ? 'Schlaf gestartet' : 'Aufgewacht')}
+    <p class="ask-time num">${fmtTime(t)} Uhr</p>
+    <p class="cap" style="text-align:center;margin-bottom:14px">${type === 'start' ? 'Eingeschlafen' : 'Aufgewacht'} um ${fmtTime(t)}${dur}.<br>Möchtest du die Uhrzeit anpassen?</p>
+    <div class="ask-actions">
+      <button class="btn secondary" data-act="adjust-no">Nein, passt</button>
+      <button class="btn primary" data-act="adjust-yes">Ja, anpassen</button>
+    </div>
+    <p style="text-align:center;margin-top:10px"><button class="text-btn" data-act="adjust-undo">${type === 'start' ? 'Doch nicht – rückgängig' : 'Schläft doch noch – rückgängig'}</button></p>`);
+}
+
 function download(fname, text, type) {
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type })), download: fname });
   document.body.appendChild(a); a.click(); a.remove();
@@ -1112,6 +1136,24 @@ document.addEventListener('click', e => {
     case 'day': openDay(el.dataset.day); break;
     case 'more-days': state.patternDays = Math.min(56, state.patternDays + 14); render(); break;
     case 'close': closeSheet(); break;
+    case 'adjust-no': pending = null; closeSheet(); break;
+    case 'adjust-yes': {
+      const p = pending; pending = null;
+      const cur = state.sleeps.find(x => x.id === p.row.id) || p.row;
+      if (p.type === 'start') openEditor({ sleep: { ...cur, end_at: null }, mode: 'start' });
+      else openEditor({ sleep: { ...cur, end_at: cur.end_at || p.row.end_at }, focus: 'end' });
+      break;
+    }
+    case 'adjust-undo': {
+      const p = pending; pending = null;
+      run(async () => {
+        if (p.type === 'start') await store.deleteSleep(p.row.id);
+        else await store.updateSleep(p.row.id, { end_at: null });
+        closeSheet();
+        toast(p.type === 'start' ? 'Rückgängig gemacht' : 'Läuft weiter');
+      });
+      break;
+    }
     case 'info': openInfo(el.dataset.topic); break;
     case 'reload': location.reload(); break;
     case 'safe-seen': ls.set('schlummi.safeSleepSeen', true); render(); break;

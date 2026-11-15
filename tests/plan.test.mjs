@@ -169,7 +169,7 @@ test('Persönliches Muster wird aus 14 Tagen gelernt', async () => {
   assert.equal(hm(plan.upcoming.at(-1).at), '20:10');
 });
 
-test('Ein Schläfchen am Tag: spätes Aufwachen verschiebt den Mittagsschlaf kaum', () => {
+test('Ein Schläfchen am Tag: spätes Aufwachen verschiebt den Mittagsschlaf teilweise, nicht voll', () => {
   const toddler = { birthdate: '2025-08-14', naps_per_day: 1 };
   const sleeps = [];
   for (let d = 1; d <= 10; d++) {
@@ -182,5 +182,20 @@ test('Ein Schläfchen am Tag: spätes Aufwachen verschiebt den Mittagsschlaf kau
   const p = planDay(toddler, sleeps, L('2026-11-11T08:30'), TZ);
   assert.equal(p.kind, 'nap');
   const t = hm(p.next.target);
-  assert.ok(t >= '12:15' && t <= '12:50', `Vorschlag ${t} sollte nahe 12:30 liegen`);
+  // üblich 12:30, heute 1 h später wach → etwas später, aber nicht 13:30
+  assert.ok(t >= '12:45' && t <= '13:15', `Vorschlag ${t} sollte zwischen 12:45 und 13:15 liegen`);
+});
+
+test('Selbstkontrolle: Treffsicherheit wird rückwirkend berechnet', async () => {
+  const { accuracy } = await import('../sleepdata.js');
+  const toddler = { birthdate: '2025-08-14', naps_per_day: 1 };
+  const sleeps = [];
+  for (let d = 1; d <= 14; d++) {
+    const day = `2026-11-${String(d).padStart(2, '0')}`, next = `2026-11-${String(d + 1).padStart(2, '0')}`;
+    sleeps.push(sl(`${day}T12:30`, `${day}T14:00`), sl(`${day}T19:30`, `${next}T07:00`));
+  }
+  const a = accuracy(toddler, sleeps, L('2026-11-15T10:00'), TZ);
+  assert.ok(a.nap.n >= 5, 'genug Tage ausgewertet');
+  // sobald genug gelernt ist (ab ca. Tag 6), trifft ein regelmäßiger Rhythmus jedes Mal
+  assert.ok(a.nap.list.slice(-7).every(x => x.hit), 'regelmäßiger Rhythmus wird getroffen');
 });
