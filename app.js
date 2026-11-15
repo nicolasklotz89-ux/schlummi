@@ -445,12 +445,18 @@ function safeSleepCard() {
 
 function viewSleeping(plan, now) {
   const s = plan.running;
+  // voraussichtliches Aufwachen: Nacht = übliche Aufwachzeit, Schläfchen = Einschlafen + übliche Schläfchenlänge
+  let wakeAt = plan.wakeAt;
+  if (!plan.night) {
+    wakeAt = new Date(Math.round((Date.parse(s.start_at) + plan.r.napLen * MIN) / 3e5) * 3e5);
+    if (wakeAt < now) wakeAt = null; // schon länger als üblich – keine Zeit in der Vergangenheit anzeigen
+  }
   return `<section class="sleepview nowv">
       ${BIGMOON}
       <p class="label">${plan.night ? 'Nachtschlaf' : 'Schläfchen'}</p>
       <p class="big num">${fmtDur(plan.mins)}</p>
       <p class="sub">eingeschlafen um ${fmtTime(new Date(s.start_at))} · <button data-act="edit-start" data-id="${esc(s.id)}">ändern</button></p>
-      ${plan.wakeAt && !plan.forgotten ? `<p class="pillrow">${svg('sun', '', 'width:18px;height:18px;fill:none;stroke:var(--star);stroke-width:1.8')}Übliche Aufwachzeit <b>etwa ${fmtTime(plan.wakeAt)}</b></p>` : ''}
+      ${wakeAt && !plan.forgotten ? `<p class="pillrow">${svg('sun', '', 'width:18px;height:18px;fill:none;stroke:var(--star);stroke-width:1.8')}Schläft voraussichtlich bis <b>etwa ${fmtTime(wakeAt)} Uhr</b></p>` : ''}
     </section>
     ${plan.forgotten ? `<div class="notice" role="status"><b>Läuft schon ${fmtDur(plan.mins)}.</b> Vergessen zu stoppen?
       <button class="link" data-act="edit" data-id="${esc(s.id)}">Aufwachzeit eintragen</button></div>` : ''}

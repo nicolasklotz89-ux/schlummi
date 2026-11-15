@@ -353,3 +353,5 @@ figure.quote blockquote { margin: 0; font-size: 15px; line-height: 1.45; color: 
 figure.quote figcaption { margin-top: 4px; font-size: 12px; color: var(--text-2); font-style: normal; }
 .ask-time { text-align: center; font-size: 44px; font-weight: 700; margin: 4px 0 2px; }
 .ask-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sleepview .pillrow { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; width: auto; max-width: 100%; padding: 12px 18px; white-space: nowrap; }
+.sleepview .pillrow b { margin-left: -2px; }
