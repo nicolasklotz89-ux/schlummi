@@ -121,9 +121,9 @@ async function onTick() {
             { onConflict: "subscription_id,sleep_id,kind", ignoreDuplicates: true })
           .select();
         if (!ins?.length) continue; // schon erinnert
-        const target = new Date(Math.min(Math.max(Math.round(n.target.getTime() / 3e5) * 3e5, n.from.getTime()), n.to.getTime()));
+        const target = n.target; // exakt, nicht gerundet
         let wake: Date | null = null;
-        if (n.type === "nap") wake = new Date(Math.round((target.getTime() + plan.r.napLen * 6e4) / 3e5) * 3e5);
+        if (n.type === "nap") wake = new Date(target.getTime() + plan.r.napLen * 6e4);
         else if (plan.r.waketime) {
           wake = atClock(target, plan.r.waketime, safeTz(sub.tz) || "Europe/Berlin");
           if (wake <= target) wake = new Date(wake.getTime() + 864e5);

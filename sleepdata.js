@@ -382,7 +382,7 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
       for (let i = 0; i < remNaps; i++) {
         const at = t + win * MIN;
         if (at + 45 * MIN >= B.getTime()) break;
-        upcoming.push({ type: 'nap', at: round5(new Date(at)), until: round5(new Date(at + r.napLen * MIN)) });
+        upcoming.push({ type: 'nap', at: new Date(at), until: new Date(at + r.napLen * MIN) });
         t = at + r.napLen * MIN;
       }
       const lastGap = (B.getTime() - t) / MIN;
@@ -399,9 +399,11 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     extraNap = !isBed && napsDone >= r.naps;
     next = { type: isBed ? 'bedtime' : 'nap', target };
   }
-  next.from = round5(new Date(next.target.getTime() - 30 * MIN));
-  next.to = round5(new Date(next.target.getTime() + 30 * MIN));
-  if (next.from < lastEnd) next.from = round5(lastEnd);
+  // exakte Zeiten (nicht gerundet): Zeitfenster ±30 min um den berechneten Zeitpunkt
+  next.target = new Date(Math.floor(next.target.getTime() / MIN) * MIN);
+  next.from = new Date(next.target.getTime() - 30 * MIN);
+  next.to = new Date(next.target.getTime() + 30 * MIN);
+  if (next.from < lastEnd) next.from = new Date(lastEnd);
   const status = now < next.from ? 'early' : now <= next.to ? 'now' : 'late';
   return { kind: next.type, status, r, last, lastEnd, awake, napsDone, next, upcoming, longDay, extraNap, dayStart };
 }

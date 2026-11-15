@@ -68,11 +68,11 @@ const ls = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* egal */ } },
 };
 // voraussichtlicher Zeitpunkt (auf 5 min gerundet, innerhalb des Fensters)
-const targetOf = n => { const t = Math.round(n.target.getTime() / 3e5) * 3e5; return new Date(Math.min(Math.max(t, n.from.getTime()), n.to.getTime())); };
+const targetOf = n => n.target;
 // voraussichtliches Aufwachen: Schläfchen = Beginn + übliche Schläfchenlänge, Nacht = übliche Aufwachzeit am nächsten Morgen
 const wakeOf = (n, r) => {
   const t = targetOf(n);
-  if (n.type === 'nap') return new Date(Math.round((t.getTime() + r.napLen * MIN) / 3e5) * 3e5);
+  if (n.type === 'nap') return new Date(t.getTime() + r.napLen * MIN);
   if (!r.waketime) return null;
   const [h, m] = r.waketime.split(':').map(Number);
   const w = new Date(t); w.setHours(h, m, 0, 0);
@@ -351,7 +351,7 @@ function nextCard(plan, now) {
   const what = n.type === 'bedtime' ? 'Schlafenszeit'
     : plan.extraNap ? 'Noch ein Schläfchen?'
     : r.naps > 1 ? `${plan.napsDone + 1}. Schläfchen` : 'Schläfchen';
-  const why = plan.status === 'early' ? `in etwa ${aboutText((n.from - now) / MIN)}`
+  const why = plan.status === 'early' ? `in ${fmtDur((n.from - now) / MIN)}`
     : plan.status === 'now' ? 'jetzt ein guter Zeitpunkt'
     : 'etwas später als sonst – ist okay';
   const wk = wakeOf(n, r);
@@ -448,7 +448,7 @@ function viewSleeping(plan, now) {
   // voraussichtliches Aufwachen: Nacht = übliche Aufwachzeit, Schläfchen = Einschlafen + übliche Schläfchenlänge
   let wakeAt = plan.wakeAt;
   if (!plan.night) {
-    wakeAt = new Date(Math.round((Date.parse(s.start_at) + plan.r.napLen * MIN) / 3e5) * 3e5);
+    wakeAt = new Date(Date.parse(s.start_at) + plan.r.napLen * MIN);
     if (wakeAt < now) wakeAt = null; // schon länger als üblich – keine Zeit in der Vergangenheit anzeigen
   }
   return `<section class="sleepview nowv">
@@ -456,7 +456,7 @@ function viewSleeping(plan, now) {
       <p class="label">${plan.night ? 'Nachtschlaf' : 'Schläfchen'}</p>
       <p class="big num">${fmtDur(plan.mins)}</p>
       <p class="sub">eingeschlafen um ${fmtTime(new Date(s.start_at))} · <button data-act="edit-start" data-id="${esc(s.id)}">ändern</button></p>
-      ${wakeAt && !plan.forgotten ? `<p class="pillrow">${svg('sun', '', 'width:18px;height:18px;fill:none;stroke:var(--star);stroke-width:1.8')}Schläft voraussichtlich bis <b>etwa ${fmtTime(wakeAt)} Uhr</b></p>` : ''}
+      ${wakeAt && !plan.forgotten ? `<p class="pillrow">${svg('sun', '', 'width:18px;height:18px;fill:none;stroke:var(--star);stroke-width:1.8')}Schläft voraussichtlich bis <b>${fmtTime(wakeAt)} Uhr</b></p>` : ''}
     </section>
     ${plan.forgotten ? `<div class="notice" role="status"><b>Läuft schon ${fmtDur(plan.mins)}.</b> Vergessen zu stoppen?
       <button class="link" data-act="edit" data-id="${esc(s.id)}">Aufwachzeit eintragen</button></div>` : ''}
@@ -501,7 +501,7 @@ function patternFacts() {
       ${L.firstWW ? `<div><small>Wach bis zum Schläfchen</small><b>${fmtDurShort(L.firstWW)}</b></div>` : ''}
       ${L.lastWW ? `<div><small>Wach bis zur Schlafenszeit</small><b>${fmtDurShort(L.lastWW)}</b></div>` : ''}
     </div>
-    <div class="obs">${svg('spark')}<p class="cap">${trend}${L.shiftLearned ? ` Wacht ${name()} später auf, verschiebt sich das Schläfchen meist um etwa ${Math.round(L.shiftK * 60 / 5) * 5} Minuten pro Stunde.` : ''} Die Vorschläge auf dem Startbildschirm richten sich nach diesem Muster.</p></div>
+    <div class="obs">${svg('spark')}<p class="cap">${trend}${L.shiftLearned ? ` Wacht ${name()} später auf, verschiebt sich das Schläfchen meist um ${Math.round(L.shiftK * 60)} Minuten pro Stunde.` : ''} Die Vorschläge auf dem Startbildschirm richten sich nach diesem Muster.</p></div>
     ${accuracyHtml()}
   </section>`;
 }
