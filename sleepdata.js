@@ -216,6 +216,7 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
       firstWW: naps.length ? (Date.parse(naps[0].start_at) - wake) / MIN : NaN,
       napH: naps.length ? localHour(new Date(naps[0].start_at), tz) : NaN,
       lastWW: naps.length && next ? (Date.parse(next.start_at) - Date.parse(naps[naps.length - 1].end_at)) / MIN : NaN,
+      napEndH: naps.length ? localHour(new Date(naps[naps.length - 1].end_at), tz) : NaN,
       napCount: naps.length,
       napLens: naps.map(x => durMin(x, now)),
     });
@@ -272,6 +273,24 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
   }
   const firstNapLen = wmedian(lp.map(d => [d.napLens[0], d.w]));
   const lastWW = wmedian(complete.map(d => [d.lastWW, d.w]));
+  // Schlafenszeit: wie stark verschiebt ein späteres Ende des letzten Schläfchens den Nachtschlaf?
+  // (gelernt wie oben; Erfahrungswert 0,1 = 1 h späteres Ende → 6 min später ins Bett)
+  const bp = complete.filter(d => d.napCount === typical && isFinite(d.napEndH) && isFinite(d.bedH));
+  const bs = [];
+  for (let i = 0; i < bp.length; i++) for (let j = i + 1; j < bp.length; j++) {
+    const dx = bp[j].napEndH - bp[i].napEndH;
+    if (Math.abs(dx) >= 0.25) bs.push((bp[j].bedH - bp[i].bedH) / dx);
+  }
+  let bedK = 0.1, bedLearned = false;
+  if (bp.length >= 6 && bs.length >= 10) {
+    bs.sort((a, b) => a - b);
+    bedK = clamp((bp.length * bs[Math.floor(bs.length / 2)] + 8 * 0.1) / (bp.length + 8), 0, 0.6);
+    bedLearned = true;
+  }
+  const napEndClockH = wmedian(bp.map(d => [d.napEndH, d.w]));
+  // kürzeste übliche Wachzeit vor der Nacht (10 %-Wert) als Untergrenze
+  const lw = complete.map(d => d.lastWW).filter(isFinite).sort((a, b) => a - b);
+  const lastWWMin = lw.length >= 5 ? lw[Math.floor(lw.length * 0.1)] : null;
   return {
     days: complete.length,
     firstWW: isFinite(firstWW) ? Math.round(firstWW) : null,
@@ -282,6 +301,9 @@ export function learnPattern(family, sleeps, now = new Date(), tz) {
     shiftK: Math.round(shiftK * 100) / 100, shiftLearned,
     napLenK: Math.round(napLenK * 100) / 100, napLenLearned,
     firstNapLen: isFinite(firstNapLen) ? Math.round(firstNapLen) : null,
+    bedK: Math.round(bedK * 100) / 100, bedLearned,
+    napEndClock: isFinite(napEndClockH) ? toClock(napEndClockH) : null,
+    lastWWMin: lastWWMin != null ? Math.round(lastWWMin) : null,
     naps: Math.round(napsRecent),
     napsAvg: napsRecent,
     trend,
@@ -392,6 +414,17 @@ export function planDay(family, sleeps, now = new Date(), tzIn) {
     let B = atClock(dayStart, r.bedtime, tz);
     if (B.getTime() <= dayStart.getTime() + 3 * 3600e3) B = new Date(B.getTime() + DAY); // Bettzeit nach Mitternacht
     const remNaps = Math.max(0, r.naps - napsDone);
+    // Gelernte Schlafenszeit (nicht bei fest eingestellter): nach dem letzten Schläfchen leicht verschieben,
+    // je nachdem, wie viel früher/später es endete als sonst – und nie mit zu kurzer Wachzeit davor.
+    if (r.bedtimeLearned && r.learned && napsDone > 0 && remNaps === 0 && !night(last)) {
+      if (r.learned.napEndClock) {
+        let usualEnd = atClock(lastEnd, r.learned.napEndClock, tz);
+        const dev = clamp((lastEnd - usualEnd) / MIN, -180, 180);
+        B = new Date(B.getTime() + r.learned.bedK * dev * MIN);
+      }
+      const minWW = Math.max(w.min * 0.8, r.learned.lastWWMin ?? 0);
+      if ((B - lastEnd) / MIN < minWW) B = new Date(lastEnd.getTime() + minWW * MIN);
+    }
     const untilBed = (B - lastEnd) / MIN;
     let win = remNaps ? (untilBed - remNaps * r.napLen) / (remNaps + 1) : untilBed;
     win = clamp(win, w.min * 0.85, w.max * 1.15);

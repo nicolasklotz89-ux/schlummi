@@ -226,3 +226,17 @@ test('Schläfchenlänge: nach längerer Wachzeit wird ein längeres Schläfchen 
   assert.ok(r.learned.napLenLearned, 'Zusammenhang erkannt');
   assert.ok(napLenFor(r, 6.5 * 60) > napLenFor(r, 4.5 * 60), 'länger wach → längeres Schläfchen');
 });
+
+test('Schlafenszeit: nach sehr spätem Schläfchen nie mit zu kurzer Wachzeit davor', () => {
+  const toddler = { birthdate: '2025-08-14', naps_per_day: 1 };
+  const sleeps = [];
+  for (let d = 1; d <= 10; d++) {
+    const day = `2026-11-${String(d).padStart(2, '0')}`, next = `2026-11-${String(d + 1).padStart(2, '0')}`;
+    sleeps.push(sl(`${day}T12:30`, `${day}T14:00`), sl(`${day}T20:00`, `${next}T07:00`));
+  }
+  sleeps.push(sl('2026-11-11T15:30', '2026-11-11T17:00')); // Ausnahme: Schläfchen erst bis 17 Uhr
+  const p = planDay(toddler, sleeps, L('2026-11-11T17:30'), TZ);
+  assert.equal(p.kind, 'bedtime');
+  assert.ok((p.next.target - L('2026-11-11T17:00')) / 6e4 >= 0.8 * 210, 'genug Wachzeit vor der Nacht');
+  assert.ok(hm(p.next.target) > '20:00', `später als sonst: ${hm(p.next.target)}`);
+});

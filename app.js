@@ -492,7 +492,7 @@ function patternFacts() {
     <div class="card-h"><h2>${name()}s Muster</h2><span class="cap">letzte 14 Tage</span></div>
     <div class="facts">
       <div><small>Aufwachen</small><b>etwa ${L.wake}</b></div>
-      <div><small>Schlafenszeit</small><b>etwa ${L.bed}</b></div>
+      <div><small>Schlafenszeit</small><b>etwa ${L.bed}</b>${L.bedLearned ? `<small class="fnote">pro Stunde späterem Schläfchen-Ende etwa ${Math.round(L.bedK * 60)} min später</small>` : ''}</div>
       ${napAt ? `<div><small>Erstes Schläfchen</small><b>etwa ${napAt}</b></div>` : ''}
       ${L.napLen ? `<div><small>Typische Schläfchenlänge</small><b>${fmtDurShort(L.napLen)}</b><small class="fnote">mittlerer Wert aus ${L.napSamples} Schläfchen${L.napLenLearned ? ` · pro Stunde länger wach etwa ${Math.round(L.napLenK * 60)} min länger` : ''}</small></div>` : ''}
       ${L.firstWW ? `<div><small>Wach bis zum Schläfchen</small><b>${fmtDurShort(L.firstWW)}</b></div>` : ''}
